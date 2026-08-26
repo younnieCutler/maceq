@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.maceq.app</string>
+	<key>CFBundleName</key>
+	<string>MacEQ</string>
+	<key>CFBundleDisplayName</key>
+	<string>MacEQ</string>
+	<key>CFBundleExecutable</key>
+	<string>maceq</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.2</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>MacEQ는 이퀄라이저를 적용하기 위해 시스템 오디오에 접근합니다. 오디오를 저장하거나 전송하지 않습니다.</string>
+</dict>
+</plist>
