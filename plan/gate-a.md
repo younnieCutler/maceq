@@ -279,3 +279,62 @@ biquad 셀프체크: 0 dB pass-through 오차 < 1e-9, +12 dB = 3.981x (이론값
 
 PRD §45 Gate A 조건(시스템 오디오 → Core Audio Tap → EQ → 물리 출력, 한 밴드 변경을 실제 음악으로 확인) 충족.
 Gate B 착수 가능.
+
+---
+
+# Gate B 결과 (2026-08-26)
+
+## 구현
+
+- `DSP/Equalizer.swift` — 20밴드 테이블(31 Hz–20 kHz, Q=2.0), 캐스케이드 크기응답, Auto Headroom 계산
+- `DSP/DSPCore.swift` — 실시간 경로. preamp → 20밴드 → 리미터 → 하드 클램프, dry/wet 크로스페이드
+- `DSP/SafetyLimiter.swift` — 피드백 리미터, threshold -0.3 dBFS, attack 0.3 ms / release 100 ms
+- `Presets/EQPreset.swift` — `EQSettings` / `EQPreset` + 기본 프리셋 9종
+- `Audio/AudioSession.swift` — 파이프라인 소유, 리스너, 복구, watchdog, sleep/wake
+
+## 검증: 독립 모델과 대조
+
+Python으로 동일한 RBJ 캐스케이드를 계산해 실측과 비교 (1 kHz / 63 Hz 사인파, 진폭 0.2 = -13.98 dBFS).
+
+| 케이스 | 모델 | 실측 |
+|---|---|---|
+| Balanced 헤드룸 피크 | 3.25 dB | 3.3 dB |
+| Bass Boost 헤드룸 피크 | 11.53 dB | 11.5 dB |
+| 1 kHz / Balanced | -17.4 dBFS | -17.2 dBFS |
+| 1 kHz / Bass Boost (AH on) | -25.5 dBFS | -25.4 dBFS |
+| 63 Hz / Balanced (AH on) | -14.5 dBFS | -14.3 dBFS |
+| 63 Hz / Bass Boost (AH on) | -14.4 dBFS | -14.4 dBFS |
+| 63 Hz / Bass Boost (AH off) | -2.9 dBFS | -2.8 dBFS |
+
+Auto Headroom이 정확히 캐스케이드 피크만큼 상쇄해 프리셋을 바꿔도 음량이 유지된다.
+
+## 리미터
+
+in -0.9 dBFS + EQ +11.1 dB + 헤드룸 OFF:
+- 초기 버전: 10.3 dB 감쇠하지만 어택 구간에서 **out +2.6 dBFS 오버슛** (lookahead 없는 피드백 구조의 한계)
+- 수정: attack 1 ms → 0.3 ms + 리미터 뒤 하드 클램프
+- 수정 후: 피크 0.0 dBFS, 정착값 -0.1 dBFS, 감쇠 10.5 dB
+
+## 장치/포맷 변경
+
+| 이벤트 | 결과 |
+|---|---|
+| 기본 출력 → Realtek USB | `pipeline built (default output device changed)` 자동, 앱 재시작 불필요 |
+| 기본 출력 → 내장 스피커 복귀 | 동일 |
+| 샘플레이트 48000 → 44100 | `pipeline built (stream format changed)`, 44100 Hz로 재구성, crash 없음 |
+| 44100 → 48000 복귀 | 동일 |
+
+## watchdog 설계 수정
+
+처음엔 "IO 콜백 0회 = 권한 없음"으로 판정했는데 **오탐**이었다.
+
+실측 결과: **아무것도 재생 안 하면 Core Audio가 aggregate 사이클을 아예 안 돌린다.** 유휴 상태에서도 콜백 0회다. Gate A에서 무음 중에도 콜백이 보였던 건 직전에 afplay가 돌아 장치가 아직 활성이었기 때문.
+
+수정: 물리 장치의 `kAudioDevicePropertyDeviceIsRunningSomewhere`로 게이팅한다.
+- 장치 활성 + 콜백 0회 2회 연속 → 콜백을 한 번도 못 봤으면 권한 없음, 봤으면 복구
+- 장치 유휴 → 판정 보류 (정상)
+- 콜백 재개 → `.running`으로 복귀
+
+## 미검증
+
+sleep/wake는 실제 절전이 필요해 이번 세션에서 못 돌렸다. 코드는 `NSWorkspace.willSleep/didWake` 기반으로 들어가 있고, wake 후 1.5 s 지연 뒤 rebuild한다.
