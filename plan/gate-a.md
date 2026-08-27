@@ -406,3 +406,25 @@ SettingsStoreTests      3
 
 - 실제 Bluetooth 이어폰 연결 해제 — 리스너 로직은 Gate B에서 USB/내장 스피커로 대체 검증됨
 - 실제 sleep/wake 사이클
+
+---
+
+# Gate E 결과 (2026-08-27)
+
+## 구현
+
+- `.github/workflows/ci.yml` — push/PR마다 macOS 러너에서 `swift build -c release` + `swift test`
+- `scripts/dmg.sh` — release 번들을 `MacEQ-<version>.dmg`로 패키징 (`/Applications` 심볼릭 링크 포함)
+- `README.md` 갱신 — 빌드/테스트/패키징/배포 안내
+
+## 배포 방식 결정
+
+Developer ID 인증서 없음(로컬 앱, 사용자가 유료 계정 미보유 확인). 따라서:
+
+- **Notarization 생략.** ad-hoc 서명(`Apple Development: ehrktm090@gmail.com`)으로 배포
+- **Sparkle 미사용.** 공증 없이는 자동 설치 업데이트가 Gatekeeper에 막히므로 무의미. 대신 `UpdateManager`가 GitHub Releases API를 폴링해 새 태그를 알림만 함(Gate C에서 이미 구현)
+- 다운로드한 앱의 최초 실행은 우클릭 → 열기 1회 필요(공증 안 된 앱의 정상 절차)
+
+## 검증
+
+`./scripts/dmg.sh` 실행 → `MacEQ-0.1.0.dmg` 생성 확인(643 KB). CI 워크플로는 실제 GitHub Actions 실행으로는 아직 검증 안 됨 — 리포 생성 후 첫 push에서 확인.
