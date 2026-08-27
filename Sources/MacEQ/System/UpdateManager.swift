@@ -22,7 +22,7 @@ final class UpdateManager: ObservableObject {
     private let repository: String
     private let currentVersion: String
 
-    init(repository: String = "aforcekim/maceq",
+    init(repository: String = "younnieCutler/maceq",
          currentVersion: String = AppInfo.version) {
         self.repository = repository
         self.currentVersion = currentVersion
@@ -96,5 +96,5 @@ enum AppInfo {
     static var build: String {
         Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "0"
     }
-    static let repositoryURL = URL(string: "https://github.com/aforcekim/maceq")!
+    static let repositoryURL = URL(string: "https://github.com/younnieCutler/maceq")!
 }
