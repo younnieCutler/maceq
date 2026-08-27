@@ -12,6 +12,11 @@ let package = Package(
                 .linkedFramework("CoreAudio"),
                 .linkedFramework("AudioToolbox"),
             ]
+        ),
+        .testTarget(
+            name: "MacEQTests",
+            dependencies: ["maceq"],
+            path: "Tests/MacEQTests"
         )
     ]
 )

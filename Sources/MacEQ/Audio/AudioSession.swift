@@ -273,7 +273,8 @@ final class AudioSession: @unchecked Sendable {
                              reason: String) {
         var address = CA.address(selector, scope: scope)
         let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-            self?.queue.async { self?.rebuild(reason: reason) }
+            guard let self else { return }
+            queue.async { [weak self] in self?.rebuild(reason: reason) }
         }
         let status = AudioObjectAddPropertyListenerBlock(objectID, &address, queue, block)
         if status == noErr {

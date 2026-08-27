@@ -134,3 +134,47 @@ enum HeadroomSelfCheck {
     }
 }
 #endif
+
+extension EQBands {
+    /// Compact label for on-screen readouts.
+    static func label(_ index: Int) -> String {
+        guard index >= 0, index < count else { return "—" }
+        let frequency = frequencies[index]
+        if frequency >= 1_000 {
+            let kilohertz = frequency / 1_000
+            return kilohertz == kilohertz.rounded()
+                ? "\(Int(kilohertz)) kHz"
+                : String(format: "%.1f kHz", kilohertz)
+        }
+        return "\(Int(frequency)) Hz"
+    }
+
+    /// VoiceOver reads units in full, per the accessibility requirement:
+    /// "125 hertz, plus 2.5 decibels".
+    static func spokenLabel(_ index: Int) -> String {
+        guard index >= 0, index < count else { return "" }
+        let frequency = frequencies[index]
+        return frequency >= 1_000
+            ? String(format: "%.1f 킬로헤르츠", frequency / 1_000)
+            : "\(Int(frequency)) 헤르츠"
+    }
+
+    static func spokenGain(_ dB: Double) -> String {
+        let rounded = (dB * 10).rounded() / 10
+        if abs(rounded) < 0.05 { return "0 데시벨" }
+        return String(format: "%@%.1f 데시벨", rounded > 0 ? "플러스 " : "마이너스 ", abs(rounded))
+    }
+}
+
+extension EQBands {
+    /// Axis label, short enough for a 28-point column.
+    static func shortLabel(_ index: Int) -> String {
+        guard index >= 0, index < count else { return "" }
+        let frequency = frequencies[index]
+        if frequency >= 1_000 {
+            let kilohertz = frequency / 1_000
+            return kilohertz == kilohertz.rounded() ? "\(Int(kilohertz))k" : String(format: "%.1fk", kilohertz)
+        }
+        return "\(Int(frequency))"
+    }
+}

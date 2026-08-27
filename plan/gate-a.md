@@ -338,3 +338,30 @@ in -0.9 dBFS + EQ +11.1 dB + 헤드룸 OFF:
 ## 미검증
 
 sleep/wake는 실제 절전이 필요해 이번 세션에서 못 돌렸다. 코드는 `NSWorkspace.willSleep/didWake` 기반으로 들어가 있고, wake 후 1.5 s 지연 뒤 rebuild한다.
+
+---
+
+# Gate C 결과 (2026-08-27)
+
+## 구현
+
+- `UI/MacEQApp.swift`, `AppDelegate` — 앱 셸, 메뉴 막대, 설정 씬
+- `UI/AppState.swift` — UI가 유일하게 대화하는 대상. 영속성·프리셋·오디오 세션을 묶고 undo/redo, 장치별 프리셋 복원을 담당
+- `UI/HomeView.swift`, `CurveEditorView.swift`, `BandsView.swift` — 홈, 실제 캐스케이드 응답을 그리는 커브 에디터, 20밴드 상세 편집
+- `UI/OnboardingView.swift`, `MenuBarContent.swift`, `SettingsView.swift`, `DiagnosticsView.swift`
+- `Persistence/SettingsStore.swift`, `Presets/PresetStore.swift` — JSON 영속화, 손상 파일은 보존한 채 기본값 폴백
+- `System/LoginItemManager.swift`(SMAppService), `PermissionManager.swift`, `UpdateManager.swift`(GitHub Releases 폴링)
+
+## 발견한 버그: 포커스 스틸 레이스
+
+`AppDelegate.applicationDidFinishLaunching`가 `state?.start()`를 호출했는데, `state`는 `RootView.onAppear`에서만 채워지는 옵셔널이었다. 두 이벤트 순서가 보장되지 않아 **런치가 끝나도 `state`가 `nil`이라 오디오 세션이 아예 시작되지 않는** 경우가 실제로 발생했다(`/tmp/maceq.log`가 아예 생성 안 됨, `settings.json`은 `@Published` `didSet`으로 init 중에 써져서 착시를 일으켰다).
+
+수정: `AppDelegate`가 `AppState`를 직접 소유(`let state = AppState()`)하도록 바꿔서 `applicationDidFinishLaunching` 시점에 항상 존재하게 만들었다. `AppDelegate`를 `@MainActor`로 표시해야 `AppState`(`@MainActor`)를 저장 프로퍼티 기본값으로 가질 수 있었다.
+
+이 버그를 잡는 도중 온보딩 미완료 상태로 실행해 `NSApp.activate`가 실행되며 **Zoom 통화 중 포커스를 가로챘다.** 확인 즉시 종료. 이후 테스트는 `onboardingCompleted: true`로 시딩하고 출력 장치 전환 없이 진행했다.
+
+**Why:** SwiftUI `@NSApplicationDelegateAdaptor` + 뷰 계층 간 상태 공유를 `onAppear`로 넘기면 launch 타이밍에 의존하게 된다. 앱 전역 상태는 delegate가 소유하고 뷰는 그걸 주입받아야 한다.
+
+## 검증
+
+빌드만 확인(디바이스 전환·톤 재생 등 상호작용 테스트는 Zoom 통화 중이라 보류). release 빌드 성공, 번들 서명 정상.
