@@ -365,3 +365,44 @@ sleep/wake는 실제 절전이 필요해 이번 세션에서 못 돌렸다. 코�
 ## 검증
 
 빌드만 확인(디바이스 전환·톤 재생 등 상호작용 테스트는 Zoom 통화 중이라 보류). release 빌드 성공, 번들 서명 정상.
+
+## Gate C 인터랙티브 검증 (재개, 온보딩 완료 시딩)
+
+- 앱 실행해도 frontmost 앱이 그대로 유지됨 (포커스 스틸 수정 확인)
+- `pipeline built (start)` 정상, TERM으로 클린 종료
+
+---
+
+# Gate D 결과 (2026-08-27)
+
+## 커버리지
+
+| 요구사항 | 구현 위치 |
+|---|---|
+| 권한 거부 UX | `StatusBanner`(Home), `OnboardingView` 2단계 — `needsPermission` 상태에서 설정 열기 버튼 |
+| BT 재연결/장치 이탈 | `AudioSession.installDeviceListeners` — `kAudioDevicePropertyDeviceIsAlive` 등, Gate B에서 구현·검증됨 |
+| 상태 마이그레이션 | `Migration.migrate` — 알 수 없는 프리셋 id 폴백, 죽은 device-preset 매핑 정리 |
+| 손상 설정 파일 복구 | `SettingsStore.load` — 파싱 실패 시 파일 보존(`.corrupt-<timestamp>`)하고 기본값 폴백 |
+| Reset MacEQ | `AppState.resetEverything` — 로그인 항목 해제, 설정 초기화, 프리셋 삭제, 오디오 재시작 |
+| 자동 테스트 | `Tests/MacEQTests` — XCTest 30개 |
+
+## 자동 테스트: 30개, 전부 통과
+
+```
+BiquadTests            4
+EQSettingsTests         5
+HeadroomTests           6
+MigrationTests          4
+PresetStoreTests        5
+SafetyLimiterTests      3
+SettingsStoreTests      3
+──────────────────────────
+합계                   30   (실패 0)
+```
+
+`swift test`와 `swift test -c release` 둘 다 통과.
+
+## 미검증 (하드웨어/시간 필요)
+
+- 실제 Bluetooth 이어폰 연결 해제 — 리스너 로직은 Gate B에서 USB/내장 스피커로 대체 검증됨
+- 실제 sleep/wake 사이클
