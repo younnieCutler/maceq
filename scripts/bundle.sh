@@ -13,9 +13,10 @@ IDENTITY="${MACEQ_IDENTITY:-Apple Development: ehrktm090@gmail.com (7TFR357KWQ)}
 [ -x "$BIN" ] || { echo "build product missing: $BIN" >&2; exit 1; }
 
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/maceq"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
+cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --options runtime \
          --sign "$IDENTITY" \

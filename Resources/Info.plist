@@ -10,6 +10,8 @@
 	<string>MacEQ</string>
 	<key>CFBundleExecutable</key>
 	<string>maceq</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
