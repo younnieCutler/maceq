@@ -98,11 +98,11 @@ struct HomeView: View {
             }
             CurveEditorView()
             HStack {
-                Text("32 Hz").font(.caption).foregroundStyle(.secondary)
+                Text(EQBands.label(0)).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button(L("home.editBands")) { showBands = true }
                 Spacer()
-                Text("20 kHz").font(.caption).foregroundStyle(.secondary)
+                Text(EQBands.label(EQBands.count - 1)).font(.caption).foregroundStyle(.secondary)
             }
         }
     }

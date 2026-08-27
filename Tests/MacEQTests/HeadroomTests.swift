@@ -18,7 +18,13 @@ final class HeadroomTests: XCTestCase {
         var gains = [Double](repeating: 0, count: EQBands.count)
         gains[10] = 6
         let required = Headroom.requiredDB(bandGainsDB: gains, sampleRate: sampleRate)
-        XCTAssertEqual(required, 6, accuracy: 0.5)
+        XCTAssertEqual(required, 6.5, accuracy: 0.05)
+    }
+
+    func testPositivePeakIncludesSafetyMargin() {
+        var gains = [Double](repeating: 0, count: EQBands.count)
+        gains[10] = 4
+        XCTAssertEqual(Headroom.requiredDB(bandGainsDB: gains, sampleRate: sampleRate), 4.5, accuracy: 0.05)
     }
 
     func testOverlappingBandsNeedMoreThanOneAloneButLessThanTheSum() {

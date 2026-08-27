@@ -17,12 +17,35 @@ final class SettingsStoreTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: url) }
 
         let store = SettingsStore(url: url)
-        store.update { $0.eqEnabled = false; $0.live.bandGainsDB[3] = 4 }
+        let selected = EQPreset.builtIns[4]
+        store.update {
+            $0.eqEnabled = false
+            $0.live.bandGainsDB[3] = 4
+            $0.selectedPresetID = selected.id
+        }
         store.flush()
 
         let reloaded = SettingsStore(url: url)
         XCTAssertEqual(reloaded.settings.eqEnabled, false)
         XCTAssertEqual(reloaded.settings.live.bandGainsDB[3], 4)
+        XCTAssertEqual(reloaded.settings.selectedPresetID, selected.id)
+    }
+
+    func testSelectingPresetUpdatesLiveStateAndPersists() async {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let selected = EQPreset.builtIns[4]
+
+        await MainActor.run {
+            let store = SettingsStore(url: url)
+            let state = AppState(store: store)
+            state.select(preset: selected)
+            XCTAssertEqual(state.selectedPresetID, selected.id)
+            XCTAssertEqual(state.live, selected.settings)
+            store.flush()
+        }
+
+        XCTAssertEqual(SettingsStore(url: url).settings.selectedPresetID, selected.id)
     }
 
     /// A corrupt settings file must not crash the app, and must not be

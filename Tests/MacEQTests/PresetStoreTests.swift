@@ -2,6 +2,33 @@ import XCTest
 @testable import maceq
 
 final class PresetStoreTests: XCTestCase {
+    func testBuiltInsMatchTheTuned20BandCurves() {
+        let expected: [[Double]] = [
+            [1.5, 1.5, 1, 1, 0.5, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0],
+            [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [-2.5, -2, -1.5, -1, -0.5, 0, 0, 0.5, 0.5, 1, 1.5, 2, 2, 1.5, 1, 0.5, 0, -0.5, -0.5, -0.5],
+            [-1.5, -1, -0.5, 0, 0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, 1, 1.5, 1.5, 1, 0.5, 1, 1.5, 1, 0.5],
+            [4, 4, 3.5, 3, 2.5, 1.5, 0.5, -0.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3, 2.5, 2],
+            [0.5, 0.5, 0.5, 0.5, 0.5, 0, -0.5, -0.5, -0.5, 0, 0, 0, 0, 0.5, 0.5, 0.5, 1, 1, 0.5, 0],
+            [-6, -5, -4, -3, -2, -1, 0, 0.5, 1, 1.5, 2, 2.5, 2.5, 2, 1.5, 1, 0, -0.5, -1, -1.5],
+            [2.5, 2.5, 2, 1.5, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 1, 1.5, 1.5, 1, 0.5],
+            [Double](repeating: 0, count: EQBands.count),
+        ]
+
+        XCTAssertEqual(EQPreset.builtIns.count, expected.count)
+        XCTAssertEqual(EQBands.frequencies.count, EQBands.count)
+        XCTAssertTrue(zip(EQBands.frequencies, EQBands.frequencies.dropFirst()).allSatisfy(<))
+
+        for (preset, gains) in zip(EQPreset.builtIns, expected) {
+            XCTAssertEqual(preset.settings.bandGainsDB, gains, preset.name)
+            XCTAssertEqual(preset.settings.bandGainsDB.count, EQBands.count, preset.name)
+            XCTAssertTrue(preset.settings.bandGainsDB.allSatisfy {
+                $0 >= EQBands.minGainDB && $0 <= EQBands.maxGainDB
+            }, preset.name)
+        }
+        XCTAssertTrue(EQPreset.flatPreset.settings.isFlat)
+    }
+
     func testBuiltInsCannotBeDeletedOrRenamed() {
         var store = PresetStore(userPresets: [])
         let flat = EQPreset.flatPreset

@@ -50,7 +50,10 @@ extension BiquadCoefficients {
 /// the single largest band gain under-estimates wherever neighbours overlap.
 /// Evaluating the actual cascade response is both cheap and correct.
 enum Headroom {
-    /// Peak magnitude of the whole cascade, in dB, never below 0.
+    static let safetyMarginDB = 0.5
+
+    /// Required attenuation for the whole cascade, including a small margin
+    /// above the measured positive peak, in dB.
     static func requiredDB(bandGainsDB: [Double], sampleRate: Double) -> Double {
         guard bandGainsDB.contains(where: { abs($0) > 1e-6 }) else { return 0 }
         let nyquist = sampleRate / 2
@@ -68,7 +71,7 @@ enum Headroom {
         // peak a Q=2 section can produce.
         let probes = 256
         let lowest = 20.0
-        let highest = min(22_000, nyquist * 0.98)
+        let highest = min(20_000, nyquist * 0.98)
         guard highest > lowest else { return 0 }
         let ratio = log(highest / lowest) / Double(probes - 1)
 
@@ -81,7 +84,7 @@ enum Headroom {
             }
             if total > peak { peak = total }
         }
-        return peak
+        return peak > 0 ? peak + safetyMarginDB : 0
     }
 
     /// Preamp actually applied once Auto Headroom has had its say.
@@ -103,11 +106,11 @@ enum HeadroomSelfCheck {
                                        sampleRate: rate)
         assert(flat == 0, "flat EQ should need no headroom, got \(flat)")
 
-        // One band at +6 dB must ask for about 6 dB and nothing like 20.
+        // One band at +6 dB must ask for its gain plus the safety margin.
         var single = [Double](repeating: 0, count: EQBands.count)
         single[10] = 6
         let singleHeadroom = Headroom.requiredDB(bandGainsDB: single, sampleRate: rate)
-        assert(abs(singleHeadroom - 6) < 0.5,
+        assert(abs(singleHeadroom - (6 + Headroom.safetyMarginDB)) < 0.5,
                "single +6 dB band needs \(singleHeadroom) dB")
 
         // Neighbouring bands overlap, so two adjacent +6 dB bands must need
