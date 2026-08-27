@@ -24,8 +24,16 @@
 "home.saveCurve" = "Save Current Curve…";
 "home.updatePreset" = "Update “%@”";
 "home.modified" = "Modified";
+"home.sound.active" = "%@ active";
+"home.userPresets" = "My Presets";
+"home.userPreset.actions" = "Manage %@";
+"home.renamePreset" = "Rename";
+"home.renamePreset.title" = "Rename Preset";
+"home.renamePreset.field" = "Name";
+"home.renamePreset.message" = "Change this preset's name.";
 "home.section.equalizer" = "Equalizer";
 "home.editBands" = "Edit 20 Bands";
+"home.headroom.summary" = "Curve peak +%.1f dB · margin %.1f dB · auto preamp %+.1f dB";
 "home.section.preamp" = "Preamp";
 "home.preamp.auto" = "Auto";
 "home.preamp.manual" = "Manual";
@@ -88,6 +96,13 @@
 "settings.audio.engine.running" = "%d Hz · %d ch · %d frames";
 
 "settings.eq.defaultPreset" = "Default Preset";
+"settings.eq.currentSound" = "Current Sound";
+"settings.eq.currentPreset" = "Selected Preset";
+"settings.eq.modified" = "The current curve differs from this preset.";
+"settings.eq.effectivePreamp" = "Effective Preamp";
+"settings.eq.choosePreset" = "Choose Preset";
+"settings.eq.builtIns" = "Built-in Presets";
+"settings.eq.userPresets" = "My Presets";
 "settings.eq.resetUserPresets" = "Reset User Presets";
 "settings.eq.exported" = "Exported %d preset(s).";
 "settings.eq.exportFailed" = "Export failed: %@";

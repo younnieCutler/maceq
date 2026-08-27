@@ -2,6 +2,12 @@ import XCTest
 @testable import maceq
 
 final class PresetStoreTests: XCTestCase {
+    func testAUserPresetNamedZeroIsStillKept() {
+        var store = PresetStore(userPresets: [])
+        let preset = store.create(name: "0", settings: .flat)
+        XCTAssertEqual(store.userPresets, [preset])
+    }
+
     func testBuiltInsMatchTheTuned20BandCurves() {
         let expected: [[Double]] = [
             [1.5, 1.5, 1, 1, 0.5, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0],

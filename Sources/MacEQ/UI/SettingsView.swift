@@ -12,6 +12,9 @@ struct SettingsView: View {
             AboutSettings().tabItem { Label(L("settings.tab.about"), systemImage: "info.circle") }
         }
         .frame(width: 480, height: 380)
+        .onAppear {
+            DispatchQueue.main.async { recenterIfOffScreen(NSApp.keyWindow) }
+        }
     }
 }
 
@@ -86,20 +89,47 @@ private struct EqualizerSettings: View {
 
     var body: some View {
         Form {
-            Picker(L("settings.eq.defaultPreset"), selection: Binding(get: { state.selectedPresetID },
-                                                set: { id in
-                if let preset = state.presets.preset(id: id) { state.select(preset: preset) }
-            })) {
-                ForEach(state.presets.all) { preset in
-                    Text(preset.name).tag(preset.id)
+            Section(L("settings.eq.currentSound")) {
+                LabeledContent(L("settings.eq.currentPreset")) {
+                    Text(state.selectedPreset?.name ?? "—")
+                }
+                if state.isModified {
+                    Label(L("settings.eq.modified"), systemImage: "slider.horizontal.3")
+                        .foregroundStyle(.secondary)
+                }
+                if state.live.autoHeadroom {
+                    LabeledContent(L("settings.eq.effectivePreamp")) {
+                        Text(String(format: "%+.1f dB", state.status.effectivePreampDB))
+                            .monospacedDigit()
+                    }
                 }
             }
 
-            HStack {
-                Button(L("common.export")) { export() }
-                Button(L("common.import")) { performImport() }
-                Spacer()
-                Button(L("settings.eq.resetUserPresets"), role: .destructive) { state.resetPresets() }
+            Section(L("settings.eq.choosePreset")) {
+                Picker(L("settings.eq.currentPreset"), selection: Binding(get: { state.selectedPresetID },
+                                                    set: { id in
+                    if let preset = state.presets.preset(id: id) { state.select(preset: preset) }
+                })) {
+                    Section(L("settings.eq.builtIns")) {
+                        ForEach(EQPreset.builtIns) { preset in
+                            Text(preset.name).tag(preset.id)
+                        }
+                    }
+                    if !state.presets.userPresets.isEmpty {
+                        Section(L("settings.eq.userPresets")) {
+                            ForEach(state.presets.userPresets) { preset in
+                                Text(preset.name).tag(preset.id)
+                            }
+                        }
+                    }
+                }
+
+                HStack {
+                    Button(L("common.export")) { export() }
+                    Button(L("common.import")) { performImport() }
+                    Spacer()
+                    Button(L("settings.eq.resetUserPresets"), role: .destructive) { state.resetPresets() }
+                }
             }
 
             if let message {

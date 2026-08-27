@@ -69,21 +69,27 @@ struct HomeView: View {
 
     private var soundSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle(L("home.section.sound"))
-            PresetChips()
-            HStack(spacing: 12) {
-                Button(L("home.saveCurve")) { showSavePreset = true }
-                if let preset = state.selectedPreset, !preset.isBuiltIn, state.isModified {
-                    Button(L("home.updatePreset", preset.name)) { state.updateSelectedPreset() }
-                }
+            HStack(alignment: .firstTextBaseline) {
+                sectionTitle(L("home.section.sound"))
                 Spacer()
-                if state.isModified {
-                    Text(L("home.modified"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                if let preset = state.selectedPreset {
+                    Label(state.isModified ? L("home.modified") : L("home.sound.active", preset.name),
+                          systemImage: state.isModified ? "slider.horizontal.3" : "checkmark.circle.fill")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(state.isModified ? Color.secondary : Color.macEQAccent)
                 }
             }
-            .buttonStyle(.link)
+            PresetChips()
+            if state.isModified {
+                HStack(spacing: 12) {
+                    Button(L("home.saveCurve")) { showSavePreset = true }
+                    if let preset = state.selectedPreset, !preset.isBuiltIn {
+                        Button(L("home.updatePreset", preset.name)) { state.updateSelectedPreset() }
+                    }
+                    Spacer()
+                }
+                .buttonStyle(.link)
+            }
         }
     }
 
@@ -103,6 +109,12 @@ struct HomeView: View {
                 Button(L("home.editBands")) { showBands = true }
                 Spacer()
                 Text(EQBands.label(EQBands.count - 1)).font(.caption).foregroundStyle(.secondary)
+            }
+            if state.live.autoHeadroom {
+                let peak = max(state.status.requiredHeadroomDB - Headroom.safetyMarginDB, 0)
+                Text(L("home.headroom.summary", peak, Headroom.safetyMarginDB, state.status.effectivePreampDB))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -147,31 +159,89 @@ struct HomeView: View {
 
 struct PresetChips: View {
     @EnvironmentObject private var state: AppState
+    @State private var presetToRename: EQPreset?
+    @State private var renamedPreset = ""
 
-    private let columns = [GridItem(.adaptive(minimum: 96), spacing: 8)]
+    private let columns = [GridItem(.adaptive(minimum: 112), spacing: 8)]
 
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(state.presets.all) { preset in
-                Button {
-                    state.select(preset: preset)
-                } label: {
-                    Text(preset.name)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+        VStack(alignment: .leading, spacing: 16) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                ForEach(EQPreset.builtIns) { preset in
+                    presetButton(preset, isUserPreset: false)
                 }
-                .buttonStyle(.bordered)
-                .tint(preset.id == state.selectedPresetID ? .macEQAccent : .secondary)
-                .accessibilityAddTraits(preset.id == state.selectedPresetID ? .isSelected : [])
-                .contextMenu {
-                    Button(L("common.duplicate")) { state.duplicate(preset) }
-                    if !preset.isBuiltIn {
-                        Button(L("common.delete"), role: .destructive) { state.delete(preset) }
+            }
+
+            if !state.presets.userPresets.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L("home.userPresets"))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+                        ForEach(state.presets.userPresets) { preset in
+                            HStack(spacing: 4) {
+                                presetButton(preset, isUserPreset: true)
+                                Menu {
+                                    Button(L("common.duplicate")) { state.duplicate(preset) }
+                                    Button(L("home.renamePreset")) {
+                                        presetToRename = preset
+                                        renamedPreset = preset.name
+                                    }
+                                    Button(L("common.delete"), role: .destructive) { state.delete(preset) }
+                                } label: {
+                                    Image(systemName: "ellipsis.circle")
+                                        .frame(width: 28, height: 44)
+                                }
+                                .menuStyle(.borderlessButton)
+                                .accessibilityLabel(L("home.userPreset.actions", preset.name))
+                            }
+                        }
                     }
                 }
             }
         }
+        .alert(L("home.renamePreset.title"), isPresented: Binding(
+            get: { presetToRename != nil },
+            set: { if !$0 { presetToRename = nil } }
+        )) {
+            TextField(L("home.renamePreset.field"), text: $renamedPreset)
+            Button(L("common.save")) {
+                if let presetToRename { state.rename(presetToRename, to: renamedPreset) }
+                presetToRename = nil
+            }
+            Button(L("common.cancel"), role: .cancel) { presetToRename = nil }
+        } message: {
+            Text(L("home.renamePreset.message"))
+        }
+    }
+
+    private func presetButton(_ preset: EQPreset, isUserPreset: Bool) -> some View {
+        let selected = preset.id == state.selectedPresetID
+        return Button { state.select(preset: preset) } label: {
+            HStack(spacing: 6) {
+                Image(systemName: selected ? "checkmark.circle.fill" : (isUserPreset ? "person.crop.circle" : "waveform"))
+                    .imageScale(.small)
+                Text(preset.name).lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .font(.callout.weight(selected ? .semibold : .regular))
+            .foregroundStyle(selected ? Color.macEQAccent : Color.primary)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background {
+                if selected {
+                    RoundedRectangle(cornerRadius: 10).fill(Color.macEQAccent.opacity(0.16))
+                } else {
+                    RoundedRectangle(cornerRadius: 10).fill(.quaternary.opacity(0.35))
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(selected ? Color.macEQAccent.opacity(0.45) : .clear)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

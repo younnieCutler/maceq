@@ -46,6 +46,17 @@ enum WindowID {
     static let main = "main"
 }
 
+/// Restored SwiftUI windows can retain coordinates from a disconnected screen.
+/// Keep every app-owned window reachable from the menu-bar display.
+@MainActor
+func recenterIfOffScreen(_ window: NSWindow?) {
+    guard let window, let primaryScreen = NSScreen.screens.first,
+          !primaryScreen.visibleFrame.intersects(window.frame) else { return }
+    window.setFrameOrigin(NSPoint(
+        x: primaryScreen.visibleFrame.midX - window.frame.width / 2,
+        y: primaryScreen.visibleFrame.midY - window.frame.height / 2))
+}
+
 /// Owns the single AppState instance so it exists — and its audio session can
 /// start — before any SwiftUI view has to appear. Relying on view `onAppear`
 /// for this raced applicationDidFinishLaunching: the delegate's state
@@ -93,7 +104,7 @@ struct RootView: View {
             }
         }
         .frame(minWidth: 480, minHeight: 600)
-        .onAppear(perform: recenterIfOffScreen)
+        .onAppear(perform: recenterMainWindowIfNeeded)
     }
 
     /// macOS restores the window to its last-known frame. That frame can sit
@@ -106,19 +117,13 @@ struct RootView: View {
     /// Deferred to the next run loop turn: at `onAppear` time AppKit has not
     /// finished applying the restored frame yet, so checking synchronously
     /// reads the window's pre-restoration position.
-    private func recenterIfOffScreen() {
+    private func recenterMainWindowIfNeeded() {
         DispatchQueue.main.async {
             // `NSScreen.main` is the screen under the key window — which, if
             // the window restored onto a stale/extended display, is that
             // same wrong screen. `.screens.first` is always the display that
             // actually carries the menu bar, so it's the one to fall back to.
-            guard let window = NSApp.windows.first(where: { $0.title == "MacEQ" }),
-                  let primaryScreen = NSScreen.screens.first else { return }
-            if !primaryScreen.visibleFrame.intersects(window.frame) {
-                window.setFrameOrigin(NSPoint(
-                    x: primaryScreen.visibleFrame.midX - window.frame.width / 2,
-                    y: primaryScreen.visibleFrame.midY - window.frame.height / 2))
-            }
+            recenterIfOffScreen(NSApp.windows.first(where: { $0.title == "MacEQ" }))
         }
     }
 }

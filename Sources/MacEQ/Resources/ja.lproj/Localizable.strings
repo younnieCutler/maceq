@@ -24,8 +24,16 @@
 "home.saveCurve" = "現在のカーブを保存…";
 "home.updatePreset" = "「%@」を更新";
 "home.modified" = "変更あり";
+"home.sound.active" = "%@ を適用中";
+"home.userPresets" = "マイプリセット";
+"home.userPreset.actions" = "%@ を管理";
+"home.renamePreset" = "名前を変更";
+"home.renamePreset.title" = "プリセット名を変更";
+"home.renamePreset.field" = "名前";
+"home.renamePreset.message" = "このプリセットの名前を変更します。";
 "home.section.equalizer" = "イコライザー";
 "home.editBands" = "20バンドを編集";
+"home.headroom.summary" = "カーブのピーク +%.1f dB · 余裕 %.1f dB · 自動プリアンプ %+.1f dB";
 "home.section.preamp" = "プリアンプ";
 "home.preamp.auto" = "自動";
 "home.preamp.manual" = "手動";
@@ -88,6 +96,13 @@
 "settings.audio.engine.running" = "%d Hz · %d チャンネル · %d フレーム";
 
 "settings.eq.defaultPreset" = "デフォルトプリセット";
+"settings.eq.currentSound" = "現在のサウンド";
+"settings.eq.currentPreset" = "選択中のプリセット";
+"settings.eq.modified" = "現在のカーブはこのプリセットから変更されています。";
+"settings.eq.effectivePreamp" = "実効プリアンプ";
+"settings.eq.choosePreset" = "プリセットを選択";
+"settings.eq.builtIns" = "標準プリセット";
+"settings.eq.userPresets" = "マイプリセット";
 "settings.eq.resetUserPresets" = "ユーザープリセットをリセット";
 "settings.eq.exported" = "%d 個のプリセットを書き出しました。";
 "settings.eq.exportFailed" = "書き出しに失敗しました: %@";

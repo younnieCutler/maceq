@@ -24,8 +24,16 @@
 "home.saveCurve" = "현재 곡선 저장…";
 "home.updatePreset" = "'%@' 업데이트";
 "home.modified" = "수정됨";
+"home.sound.active" = "%@ 적용 중";
+"home.userPresets" = "내 프리셋";
+"home.userPreset.actions" = "%@ 관리";
+"home.renamePreset" = "이름 변경";
+"home.renamePreset.title" = "프리셋 이름 변경";
+"home.renamePreset.field" = "이름";
+"home.renamePreset.message" = "이 프리셋의 이름을 변경합니다.";
 "home.section.equalizer" = "이퀄라이저";
 "home.editBands" = "20밴드 편집";
+"home.headroom.summary" = "곡선 피크 +%.1f dB · 여유 %.1f dB · 자동 프리앰프 %+.1f dB";
 "home.section.preamp" = "프리앰프";
 "home.preamp.auto" = "자동";
 "home.preamp.manual" = "수동";
@@ -88,6 +96,13 @@
 "settings.audio.engine.running" = "%d Hz · %d채널 · %d 프레임";
 
 "settings.eq.defaultPreset" = "기본 프리셋";
+"settings.eq.currentSound" = "현재 사운드";
+"settings.eq.currentPreset" = "선택된 프리셋";
+"settings.eq.modified" = "현재 곡선이 프리셋에서 변경되었습니다.";
+"settings.eq.effectivePreamp" = "실효 프리앰프";
+"settings.eq.choosePreset" = "프리셋 선택";
+"settings.eq.builtIns" = "기본 프리셋";
+"settings.eq.userPresets" = "내 프리셋";
 "settings.eq.resetUserPresets" = "사용자 프리셋 초기화";
 "settings.eq.exported" = "%d개 프리셋을 내보냈습니다.";
 "settings.eq.exportFailed" = "내보내기 실패: %@";
