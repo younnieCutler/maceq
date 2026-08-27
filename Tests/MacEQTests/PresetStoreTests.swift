@@ -4,10 +4,11 @@ import XCTest
 final class PresetStoreTests: XCTestCase {
     func testBuiltInsCannotBeDeletedOrRenamed() {
         var store = PresetStore(userPresets: [])
-        let flat = EQPreset.builtIns.first { $0.name == "Flat" }!
+        let flat = EQPreset.flatPreset
+        let originalName = flat.name
         store.rename(id: flat.id, to: "Nope")
         store.delete(id: flat.id)
-        XCTAssertTrue(store.all.contains { $0.id == flat.id && $0.name == "Flat" })
+        XCTAssertTrue(store.all.contains { $0.id == flat.id && $0.name == originalName })
     }
 
     func testCreateGivesUniqueNames() {

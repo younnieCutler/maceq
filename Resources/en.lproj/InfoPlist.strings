@@ -1,0 +1,1 @@
+NSAudioCaptureUsageDescription = "MacEQ accesses system audio to apply the equalizer. Audio is never stored or transmitted.";

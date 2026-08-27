@@ -1,0 +1,1 @@
+NSAudioCaptureUsageDescription = "MacEQ는 이퀄라이저를 적용하기 위해 시스템 오디오에 접근합니다. 오디오를 저장하거나 전송하지 않습니다.";

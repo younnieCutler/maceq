@@ -20,16 +20,16 @@ struct HomeView: View {
         }
         .background(.background)
         .sheet(isPresented: $showBands) { BandsView() }
-        .alert("프리셋 저장", isPresented: $showSavePreset) {
-            TextField("이름", text: $newPresetName)
-            Button("저장") {
+        .alert(L("home.savePreset.title"), isPresented: $showSavePreset) {
+            TextField(L("home.savePreset.field"), text: $newPresetName)
+            Button(L("common.save")) {
                 let name = newPresetName.trimmingCharacters(in: .whitespacesAndNewlines)
-                state.saveAsPreset(named: name.isEmpty ? "내 프리셋" : name)
+                state.saveAsPreset(named: name.isEmpty ? L("home.savePreset.defaultName") : name)
                 newPresetName = ""
             }
-            Button("취소", role: .cancel) { newPresetName = "" }
+            Button(L("common.cancel"), role: .cancel) { newPresetName = "" }
         } message: {
-            Text("현재 곡선을 새 프리셋으로 저장합니다.")
+            Text(L("home.savePreset.message"))
         }
     }
 
@@ -38,12 +38,12 @@ struct HomeView: View {
             Text("MacEQ")
                 .font(.largeTitle.weight(.semibold))
             Spacer()
-            Toggle("이퀄라이저 켜기", isOn: $state.eqEnabled)
+            Toggle(L("home.eq.accessibilityLabel"), isOn: $state.eqEnabled)
                 .toggleStyle(.switch)
                 .labelsHidden()
-                .accessibilityLabel("이퀄라이저")
-                .accessibilityValue(state.eqEnabled ? "켜짐" : "꺼짐")
-            Text(state.eqEnabled ? "켜짐" : "꺼짐")
+                .accessibilityLabel(L("home.eq.accessibilityLabel"))
+                .accessibilityValue(state.eqEnabled ? L("common.on") : L("common.off"))
+            Text(state.eqEnabled ? L("common.on") : L("common.off"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .frame(width: 36, alignment: .leading)
@@ -62,23 +62,23 @@ struct HomeView: View {
     }
 
     private var deviceSubtitle: String {
-        guard state.status.sampleRate > 0 else { return "연결 대기 중" }
+        guard state.status.sampleRate > 0 else { return L("home.device.waiting") }
         let rate = String(format: "%.4g kHz", state.status.sampleRate / 1_000)
-        return "연결됨 · \(rate)"
+        return L("home.device.connected", rate)
     }
 
     private var soundSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("사운드")
+            sectionTitle(L("home.section.sound"))
             PresetChips()
             HStack(spacing: 12) {
-                Button("현재 곡선 저장…") { showSavePreset = true }
+                Button(L("home.saveCurve")) { showSavePreset = true }
                 if let preset = state.selectedPreset, !preset.isBuiltIn, state.isModified {
-                    Button("‘\(preset.name)’ 업데이트") { state.updateSelectedPreset() }
+                    Button(L("home.updatePreset", preset.name)) { state.updateSelectedPreset() }
                 }
                 Spacer()
                 if state.isModified {
-                    Text("수정됨")
+                    Text(L("home.modified"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -90,9 +90,9 @@ struct HomeView: View {
     private var equalizerSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                sectionTitle("이퀄라이저")
+                sectionTitle(L("home.section.equalizer"))
                 Spacer()
-                Button("초기화") { state.resetBands() }
+                Button(L("common.reset")) { state.resetBands() }
                     .buttonStyle(.link)
                     .disabled(state.live.isFlat)
             }
@@ -100,7 +100,7 @@ struct HomeView: View {
             HStack {
                 Text("32 Hz").font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("20밴드 편집") { showBands = true }
+                Button(L("home.editBands")) { showBands = true }
                 Spacer()
                 Text("20 kHz").font(.caption).foregroundStyle(.secondary)
             }
@@ -109,14 +109,14 @@ struct HomeView: View {
 
     private var preampSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("프리앰프")
+            sectionTitle(L("home.section.preamp"))
             HStack {
-                Text(state.live.autoHeadroom ? "자동" : "수동")
+                Text(state.live.autoHeadroom ? L("home.preamp.auto") : L("home.preamp.manual"))
                     .foregroundStyle(.secondary)
                 Slider(value: Binding(get: { state.live.preampDB },
                                       set: { state.setPreampDB($0) }),
                        in: -24...12, step: 0.5)
-                    .accessibilityLabel("프리앰프")
+                    .accessibilityLabel(L("home.section.preamp"))
                     .accessibilityValue(EQBands.spokenGain(state.live.preampDB))
                 Text(String(format: "%+.1f dB", state.status.effectivePreampDB))
                     .font(.body.monospacedDigit())
@@ -126,10 +126,10 @@ struct HomeView: View {
             Toggle(isOn: Binding(get: { state.live.autoHeadroom },
                                  set: { state.setAutoHeadroom($0) })) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("자동 헤드룸")
+                    Text(L("home.autoHeadroom.title"))
                     Text(state.live.autoHeadroom
-                         ? "클리핑을 자동으로 방지합니다. 현재 \(String(format: "%.1f", state.status.requiredHeadroomDB)) dB 확보 중."
-                         : "부스트가 클수록 소리가 깨질 수 있습니다.")
+                         ? L("home.autoHeadroom.on", state.status.requiredHeadroomDB)
+                         : L("home.autoHeadroom.off"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -165,9 +165,9 @@ struct PresetChips: View {
                 .tint(preset.id == state.selectedPresetID ? .macEQAccent : .secondary)
                 .accessibilityAddTraits(preset.id == state.selectedPresetID ? .isSelected : [])
                 .contextMenu {
-                    Button("복제") { state.duplicate(preset) }
+                    Button(L("common.duplicate")) { state.duplicate(preset) }
                     if !preset.isBuiltIn {
-                        Button("삭제", role: .destructive) { state.delete(preset) }
+                        Button(L("common.delete"), role: .destructive) { state.delete(preset) }
                     }
                 }
             }
@@ -184,22 +184,22 @@ struct StatusBanner: View {
         switch state.status.state {
         case .needsPermission:
             banner(icon: "waveform.badge.exclamationmark",
-                   title: "시스템 오디오 접근이 꺼져 있습니다",
-                   message: "MacEQ가 소리를 조절하려면 권한이 필요합니다.",
-                   actionTitle: "설정 열기") {
+                   title: L("status.needsPermission.title"),
+                   message: L("status.needsPermission.message"),
+                   actionTitle: L("status.openSettings")) {
                 PermissionManager.openSystemSettings()
             }
         case .failed(let reason):
             banner(icon: "exclamationmark.triangle",
-                   title: "오디오 연결을 복구하지 못했습니다",
+                   title: L("status.failed.title"),
                    message: reason,
-                   actionTitle: "다시 연결") {
+                   actionTitle: L("status.retry")) {
                 state.retryAudio()
             }
         case .recovering(let attempt):
             banner(icon: "arrow.clockwise",
-                   title: "오디오를 다시 연결하는 중",
-                   message: "\(attempt)번째 시도",
+                   title: L("status.recovering.title"),
+                   message: L("status.recovering.message", attempt),
                    actionTitle: nil, action: nil)
         default:
             EmptyView()

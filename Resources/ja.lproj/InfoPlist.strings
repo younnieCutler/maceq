@@ -1,0 +1,1 @@
+NSAudioCaptureUsageDescription = "MacEQ はイコライザーを適用するためにシステムオーディオにアクセスします。音声を保存したり送信したりすることはありません。";

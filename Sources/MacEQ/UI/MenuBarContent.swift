@@ -6,13 +6,13 @@ struct MenuBarContent: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Toggle("이퀄라이저", isOn: $state.eqEnabled)
+        Toggle(L("menubar.equalizer"), isOn: $state.eqEnabled)
 
         if !state.status.deviceName.isEmpty {
             Text(state.status.deviceName)
         }
         if case .needsPermission = state.status.state {
-            Button("시스템 오디오 권한 필요…") { PermissionManager.openSystemSettings() }
+            Button(L("menubar.needsPermission")) { PermissionManager.openSystemSettings() }
         }
 
         Divider()
@@ -31,13 +31,13 @@ struct MenuBarContent: View {
 
         Divider()
 
-        Button("이퀄라이저 열기…") {
+        Button(L("menubar.open")) {
             NSApp.activate(ignoringOtherApps: true)
             openWindow(id: WindowID.main)
         }
-        SettingsLink { Text("설정…") }
+        SettingsLink { Text(L("menubar.settings")) }
             .keyboardShortcut(",", modifiers: .command)
-        Button("MacEQ 종료") { NSApp.terminate(nil) }
+        Button(L("menubar.quit")) { NSApp.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)
     }
 }

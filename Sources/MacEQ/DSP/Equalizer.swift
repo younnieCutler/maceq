@@ -155,14 +155,14 @@ extension EQBands {
         guard index >= 0, index < count else { return "" }
         let frequency = frequencies[index]
         return frequency >= 1_000
-            ? String(format: "%.1f 킬로헤르츠", frequency / 1_000)
-            : "\(Int(frequency)) 헤르츠"
+            ? L("a11y.frequency.khz", frequency / 1_000)
+            : L("a11y.frequency.hz", Int(frequency))
     }
 
     static func spokenGain(_ dB: Double) -> String {
         let rounded = (dB * 10).rounded() / 10
-        if abs(rounded) < 0.05 { return "0 데시벨" }
-        return String(format: "%@%.1f 데시벨", rounded > 0 ? "플러스 " : "마이너스 ", abs(rounded))
+        if abs(rounded) < 0.05 { return L("a11y.gain.zero") }
+        return rounded > 0 ? L("a11y.gain.plus", abs(rounded)) : L("a11y.gain.minus", abs(rounded))
     }
 }
 

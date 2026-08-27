@@ -1,0 +1,157 @@
+/* Common */
+"common.save" = "保存";
+"common.cancel" = "キャンセル";
+"common.reset" = "リセット";
+"common.on" = "オン";
+"common.off" = "オフ";
+"common.duplicate" = "複製";
+"common.delete" = "削除";
+"common.done" = "完了";
+"common.back" = "戻る";
+"common.continue" = "続ける";
+"common.export" = "書き出す…";
+"common.import" = "読み込む…";
+
+/* Home */
+"home.savePreset.title" = "プリセットを保存";
+"home.savePreset.field" = "名前";
+"home.savePreset.defaultName" = "マイプリセット";
+"home.savePreset.message" = "現在のカーブを新しいプリセットとして保存します。";
+"home.eq.accessibilityLabel" = "イコライザー";
+"home.device.waiting" = "接続待ち";
+"home.device.connected" = "接続済み · %@";
+"home.section.sound" = "サウンド";
+"home.saveCurve" = "現在のカーブを保存…";
+"home.updatePreset" = "「%@」を更新";
+"home.modified" = "変更あり";
+"home.section.equalizer" = "イコライザー";
+"home.editBands" = "20バンドを編集";
+"home.section.preamp" = "プリアンプ";
+"home.preamp.auto" = "自動";
+"home.preamp.manual" = "手動";
+"home.autoHeadroom.title" = "オートヘッドルーム";
+"home.autoHeadroom.on" = "クリッピングを自動で防ぎます。現在 %.1f dB 確保中。";
+"home.autoHeadroom.off" = "ブーストが大きいほど音が割れやすくなります。";
+
+/* Status banner */
+"status.needsPermission.title" = "システムオーディオへのアクセスがオフです";
+"status.needsPermission.message" = "MacEQ で音を調整するには権限が必要です。";
+"status.openSettings" = "設定を開く";
+"status.failed.title" = "オーディオ接続を復旧できませんでした";
+"status.retry" = "再接続";
+"status.recovering.title" = "オーディオを再接続しています";
+"status.recovering.message" = "%d 回目の試行";
+
+/* Bands sheet */
+"bands.title" = "20バンド・イコライザー";
+"bands.resetAll" = "すべて 0 dB に戻す";
+"bands.hint" = "ドラッグで調整、値をダブルクリックすると 0 dB に戻ります。⌘Z で元に戻す。";
+
+/* Menu bar */
+"menubar.equalizer" = "イコライザー";
+"menubar.needsPermission" = "システムオーディオの権限が必要…";
+"menubar.open" = "イコライザーを開く…";
+"menubar.settings" = "設定…";
+"menubar.quit" = "MacEQ を終了";
+
+/* Onboarding */
+"onboarding.welcome.title" = "Macの音を、\n思いのままに。";
+"onboarding.welcome.subtitle" = "20バンド・イコライザーをすべてのサウンドに。";
+"onboarding.permission.title" = "システムオーディオへのアクセス";
+"onboarding.permission.body" = "MacEQ は音声を処理するだけで、録音やアップロードは一切行いません。\n音声はこの Mac の外に出ることはありません。";
+"onboarding.pick.title" = "準備が整いました。";
+"onboarding.pick.subtitle" = "まず試したいサウンドを選んでください。";
+"onboarding.start" = "はじめる";
+
+/* Settings */
+"settings.tab.general" = "一般";
+"settings.tab.audio" = "オーディオ";
+"settings.tab.equalizer" = "イコライザー";
+"settings.tab.advanced" = "詳細";
+"settings.tab.about" = "情報";
+
+"settings.general.launchAtLogin" = "ログイン時に MacEQ を起動";
+"settings.general.loginBlocked" = "MacEQ をログイン時に自動起動できません。";
+"settings.general.loginBlocked.action" = "システム設定で許可";
+"settings.general.loginFailed" = "登録に失敗しました: %@";
+"settings.general.startEnabled" = "起動時にイコライザーをオンにする";
+"settings.general.menuBarIcon" = "メニューバーに表示";
+"settings.general.dockIcon" = "Dock に表示";
+
+"settings.audio.outputDevice" = "出力デバイス";
+"settings.audio.followSystem" = "システムのデフォルトに従う";
+"settings.audio.refreshDevices" = "デバイス一覧を更新";
+"settings.audio.autoHeadroom" = "オートヘッドルーム";
+"settings.audio.safetyLimiter" = "セーフティリミッター";
+"settings.audio.engine" = "エンジン";
+"settings.audio.engine.stopped" = "停止中";
+"settings.audio.engine.running" = "%d Hz · %d チャンネル · %d フレーム";
+
+"settings.eq.defaultPreset" = "デフォルトプリセット";
+"settings.eq.resetUserPresets" = "ユーザープリセットをリセット";
+"settings.eq.exported" = "%d 個のプリセットを書き出しました。";
+"settings.eq.exportFailed" = "書き出しに失敗しました: %@";
+"settings.eq.imported" = "%d 個のプリセットを読み込みました。";
+"settings.eq.importFailed" = "読み込みに失敗しました。ファイルを読み取れません。";
+
+"settings.advanced.diagnostics" = "診断";
+"settings.advanced.restartEngine" = "オーディオエンジンを再起動";
+"settings.advanced.resetEverything" = "MacEQ をリセット…";
+"settings.advanced.resetConfirm.title" = "MacEQ をリセットしますか?";
+"settings.advanced.resetConfirm.message" = "プリセット、デバイスごとの設定、ログイン項目がすべて削除されます。";
+
+"settings.about.version" = "バージョン";
+"settings.about.checkUpdates" = "アップデートを確認";
+"settings.about.viewRelease" = "リリースを見る";
+"settings.about.privacy" = "音声はこの Mac の外に出ません。アカウントもクラウドも広告もありません。";
+"settings.about.checking" = "確認中…";
+"settings.about.upToDate" = "最新の状態です。";
+"settings.about.available" = "%@ が利用可能";
+"settings.about.checkFailed" = "確認に失敗しました: %@";
+
+/* Diagnostics */
+"diagnostics.copy" = "診断情報をコピー";
+"diagnostics.copied" = "コピーしました";
+"diagnostics.silent" = "無音";
+"diagnostics.engine" = "エンジン";
+"diagnostics.output" = "出力";
+"diagnostics.sampleRate" = "サンプルレート";
+"diagnostics.channels" = "チャンネル";
+"diagnostics.buffer" = "バッファ";
+"diagnostics.buffer.frames" = "%d フレーム";
+"diagnostics.equalizer" = "イコライザー";
+"diagnostics.autoHeadroom" = "オートヘッドルーム";
+"diagnostics.effectivePreamp" = "実効プリアンプ";
+"diagnostics.peakIn" = "入力ピーク";
+"diagnostics.peakOut" = "出力ピーク";
+"diagnostics.limiter" = "リミッター";
+"diagnostics.lastError" = "最後のエラー";
+"diagnostics.none" = "なし";
+"diagnostics.state.stopped" = "停止中";
+"diagnostics.state.running" = "実行中";
+"diagnostics.state.needsPermission" = "権限なし";
+"diagnostics.state.recovering" = "復旧中 (%d)";
+"diagnostics.state.failed" = "失敗 — %@";
+
+/* Curve editor accessibility */
+"curve.a11y.label" = "イコライザーカーブ";
+"curve.a11y.hint" = "細かく調整するには20バンド編集を使ってください";
+"curve.a11y.allZero" = "すべてのバンドが0デシベル";
+
+/* Band accessibility */
+"a11y.frequency.khz" = "%.1f キロヘルツ";
+"a11y.frequency.hz" = "%d ヘルツ";
+"a11y.gain.zero" = "0 デシベル";
+"a11y.gain.plus" = "プラス %.1f デシベル";
+"a11y.gain.minus" = "マイナス %.1f デシベル";
+
+/* Preset names */
+"preset.balanced" = "バランス";
+"preset.bassBoost" = "ベースブースト";
+"preset.vocal" = "ボーカル";
+"preset.acoustic" = "アコースティック";
+"preset.electronic" = "エレクトロニック";
+"preset.classical" = "クラシック";
+"preset.podcast" = "ポッドキャスト";
+"preset.night" = "ナイト";
+"preset.flat" = "フラット";

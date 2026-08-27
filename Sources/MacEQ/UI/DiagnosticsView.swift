@@ -18,7 +18,7 @@ struct DiagnosticsView: View {
                 .font(.callout)
             }
             HStack {
-                Button(copied ? "복사됨" : "진단 정보 복사") { copy() }
+                Button(copied ? L("diagnostics.copied") : L("diagnostics.copy")) { copy() }
                     .buttonStyle(.link)
                 Spacer()
             }
@@ -30,33 +30,33 @@ struct DiagnosticsView: View {
     private var rows: [(String, String)] {
         let status = state.status
         func level(_ value: Double) -> String {
-            value.isFinite ? String(format: "%.1f dBFS", value) : "무음"
+            value.isFinite ? String(format: "%.1f dBFS", value) : L("diagnostics.silent")
         }
         return [
             ("MacEQ", "\(AppInfo.version) (\(AppInfo.build))"),
-            ("엔진", describe(status.state)),
-            ("출력", status.deviceName),
-            ("샘플레이트", status.sampleRate > 0 ? "\(Int(status.sampleRate)) Hz" : "—"),
-            ("채널", "\(status.channels)"),
-            ("버퍼", "\(status.bufferFrames) 프레임"),
-            ("이퀄라이저", status.enabled ? "켜짐" : "꺼짐"),
-            ("자동 헤드룸", status.autoHeadroom
-                ? String(format: "%.1f dB", -status.requiredHeadroomDB) : "꺼짐"),
-            ("실효 프리앰프", String(format: "%+.1f dB", status.effectivePreampDB)),
-            ("입력 피크", level(status.peakInDB)),
-            ("출력 피크", level(status.peakOutDB)),
-            ("리미터", String(format: "%.1f dB", status.limiterReductionDB)),
-            ("마지막 오류", status.lastError ?? "없음"),
+            (L("diagnostics.engine"), describe(status.state)),
+            (L("diagnostics.output"), status.deviceName),
+            (L("diagnostics.sampleRate"), status.sampleRate > 0 ? "\(Int(status.sampleRate)) Hz" : "—"),
+            (L("diagnostics.channels"), "\(status.channels)"),
+            (L("diagnostics.buffer"), L("diagnostics.buffer.frames", Int(status.bufferFrames))),
+            (L("diagnostics.equalizer"), status.enabled ? L("common.on") : L("common.off")),
+            (L("diagnostics.autoHeadroom"), status.autoHeadroom
+                ? String(format: "%.1f dB", -status.requiredHeadroomDB) : L("common.off")),
+            (L("diagnostics.effectivePreamp"), String(format: "%+.1f dB", status.effectivePreampDB)),
+            (L("diagnostics.peakIn"), level(status.peakInDB)),
+            (L("diagnostics.peakOut"), level(status.peakOutDB)),
+            (L("diagnostics.limiter"), String(format: "%.1f dB", status.limiterReductionDB)),
+            (L("diagnostics.lastError"), status.lastError ?? L("diagnostics.none")),
         ]
     }
 
     private func describe(_ state: AudioSession.State) -> String {
         switch state {
-        case .stopped: return "정지됨"
-        case .running: return "실행 중"
-        case .needsPermission: return "권한 없음"
-        case .recovering(let attempt): return "복구 중 (\(attempt))"
-        case .failed(let reason): return "실패 — \(reason)"
+        case .stopped: return L("diagnostics.state.stopped")
+        case .running: return L("diagnostics.state.running")
+        case .needsPermission: return L("diagnostics.state.needsPermission")
+        case .recovering(let attempt): return L("diagnostics.state.recovering", attempt)
+        case .failed(let reason): return L("diagnostics.state.failed", reason)
         }
     }
 

@@ -39,9 +39,9 @@ struct CurveEditorView: View {
         .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
         .accessibilityElement()
-        .accessibilityLabel("이퀄라이저 곡선")
+        .accessibilityLabel(L("curve.a11y.label"))
         .accessibilityValue(curveDescription)
-        .accessibilityHint("자세히 조절하려면 20밴드 편집을 사용하세요")
+        .accessibilityHint(L("curve.a11y.hint"))
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: state.live)
     }
 
@@ -177,6 +177,6 @@ struct CurveEditorView: View {
         let loud = state.live.bandGainsDB.enumerated()
             .filter { abs($0.element) >= 1 }
             .map { "\(EQBands.spokenLabel($0.offset)), \(EQBands.spokenGain($0.element))" }
-        return loud.isEmpty ? "모든 밴드 0데시벨" : loud.joined(separator: ", ")
+        return loud.isEmpty ? L("curve.a11y.allZero") : loud.joined(separator: ", ")
     }
 }

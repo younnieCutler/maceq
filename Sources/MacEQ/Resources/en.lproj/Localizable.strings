@@ -1,0 +1,157 @@
+/* Common */
+"common.save" = "Save";
+"common.cancel" = "Cancel";
+"common.reset" = "Reset";
+"common.on" = "On";
+"common.off" = "Off";
+"common.duplicate" = "Duplicate";
+"common.delete" = "Delete";
+"common.done" = "Done";
+"common.back" = "Back";
+"common.continue" = "Continue";
+"common.export" = "Export…";
+"common.import" = "Import…";
+
+/* Home */
+"home.savePreset.title" = "Save Preset";
+"home.savePreset.field" = "Name";
+"home.savePreset.defaultName" = "My Preset";
+"home.savePreset.message" = "Save the current curve as a new preset.";
+"home.eq.accessibilityLabel" = "Equalizer";
+"home.device.waiting" = "Waiting to connect";
+"home.device.connected" = "Connected · %@";
+"home.section.sound" = "Sound";
+"home.saveCurve" = "Save Current Curve…";
+"home.updatePreset" = "Update “%@”";
+"home.modified" = "Modified";
+"home.section.equalizer" = "Equalizer";
+"home.editBands" = "Edit 20 Bands";
+"home.section.preamp" = "Preamp";
+"home.preamp.auto" = "Auto";
+"home.preamp.manual" = "Manual";
+"home.autoHeadroom.title" = "Auto Headroom";
+"home.autoHeadroom.on" = "Automatically prevents clipping. Currently reserving %.1f dB.";
+"home.autoHeadroom.off" = "Larger boosts can cause distortion.";
+
+/* Status banner */
+"status.needsPermission.title" = "System audio access is off";
+"status.needsPermission.message" = "MacEQ needs permission to adjust your sound.";
+"status.openSettings" = "Open Settings";
+"status.failed.title" = "MacEQ couldn't reconnect the audio";
+"status.retry" = "Reconnect";
+"status.recovering.title" = "Reconnecting audio";
+"status.recovering.message" = "Attempt %d";
+
+/* Bands sheet */
+"bands.title" = "20-Band Equalizer";
+"bands.resetAll" = "Reset All to 0 dB";
+"bands.hint" = "Drag to adjust, double-click a value to reset it to 0 dB. ⌘Z to undo.";
+
+/* Menu bar */
+"menubar.equalizer" = "Equalizer";
+"menubar.needsPermission" = "System Audio Permission Needed…";
+"menubar.open" = "Open Equalizer…";
+"menubar.settings" = "Settings…";
+"menubar.quit" = "Quit MacEQ";
+
+/* Onboarding */
+"onboarding.welcome.title" = "Mac's sound,\nyour way.";
+"onboarding.welcome.subtitle" = "A 20-band equalizer for everything you hear.";
+"onboarding.permission.title" = "System Audio Access";
+"onboarding.permission.body" = "MacEQ only processes sound — it never records or uploads it.\nYour audio never leaves this Mac.";
+"onboarding.pick.title" = "You're all set.";
+"onboarding.pick.subtitle" = "Pick a sound to start with.";
+"onboarding.start" = "Get Started";
+
+/* Settings */
+"settings.tab.general" = "General";
+"settings.tab.audio" = "Audio";
+"settings.tab.equalizer" = "Equalizer";
+"settings.tab.advanced" = "Advanced";
+"settings.tab.about" = "About";
+
+"settings.general.launchAtLogin" = "Launch MacEQ at Login";
+"settings.general.loginBlocked" = "MacEQ can't launch automatically at login.";
+"settings.general.loginBlocked.action" = "Allow in System Settings";
+"settings.general.loginFailed" = "Registration failed: %@";
+"settings.general.startEnabled" = "Start Equalizer Enabled";
+"settings.general.menuBarIcon" = "Show in Menu Bar";
+"settings.general.dockIcon" = "Show in Dock";
+
+"settings.audio.outputDevice" = "Output Device";
+"settings.audio.followSystem" = "Follow System Default";
+"settings.audio.refreshDevices" = "Refresh Device List";
+"settings.audio.autoHeadroom" = "Auto Headroom";
+"settings.audio.safetyLimiter" = "Safety Limiter";
+"settings.audio.engine" = "Engine";
+"settings.audio.engine.stopped" = "Stopped";
+"settings.audio.engine.running" = "%d Hz · %d ch · %d frames";
+
+"settings.eq.defaultPreset" = "Default Preset";
+"settings.eq.resetUserPresets" = "Reset User Presets";
+"settings.eq.exported" = "Exported %d preset(s).";
+"settings.eq.exportFailed" = "Export failed: %@";
+"settings.eq.imported" = "Imported %d preset(s).";
+"settings.eq.importFailed" = "Import failed: couldn't read the file.";
+
+"settings.advanced.diagnostics" = "Diagnostics";
+"settings.advanced.restartEngine" = "Restart Audio Engine";
+"settings.advanced.resetEverything" = "Reset MacEQ…";
+"settings.advanced.resetConfirm.title" = "Reset MacEQ?";
+"settings.advanced.resetConfirm.message" = "Presets, per-device settings, and the login item will all be removed.";
+
+"settings.about.version" = "Version";
+"settings.about.checkUpdates" = "Check for Updates";
+"settings.about.viewRelease" = "View Release";
+"settings.about.privacy" = "Audio never leaves this Mac. No account, no cloud, no ads.";
+"settings.about.checking" = "Checking…";
+"settings.about.upToDate" = "You're up to date.";
+"settings.about.available" = "%@ available";
+"settings.about.checkFailed" = "Check failed: %@";
+
+/* Diagnostics */
+"diagnostics.copy" = "Copy Diagnostics";
+"diagnostics.copied" = "Copied";
+"diagnostics.silent" = "Silent";
+"diagnostics.engine" = "Engine";
+"diagnostics.output" = "Output";
+"diagnostics.sampleRate" = "Sample Rate";
+"diagnostics.channels" = "Channels";
+"diagnostics.buffer" = "Buffer";
+"diagnostics.buffer.frames" = "%d frames";
+"diagnostics.equalizer" = "Equalizer";
+"diagnostics.autoHeadroom" = "Auto Headroom";
+"diagnostics.effectivePreamp" = "Effective Preamp";
+"diagnostics.peakIn" = "Input Peak";
+"diagnostics.peakOut" = "Output Peak";
+"diagnostics.limiter" = "Limiter";
+"diagnostics.lastError" = "Last Error";
+"diagnostics.none" = "None";
+"diagnostics.state.stopped" = "Stopped";
+"diagnostics.state.running" = "Running";
+"diagnostics.state.needsPermission" = "No Permission";
+"diagnostics.state.recovering" = "Recovering (%d)";
+"diagnostics.state.failed" = "Failed — %@";
+
+/* Curve editor accessibility */
+"curve.a11y.label" = "Equalizer curve";
+"curve.a11y.hint" = "Use Edit 20 Bands for finer control";
+"curve.a11y.allZero" = "All bands zero decibels";
+
+/* Band accessibility */
+"a11y.frequency.khz" = "%.1f kilohertz";
+"a11y.frequency.hz" = "%d hertz";
+"a11y.gain.zero" = "0 decibels";
+"a11y.gain.plus" = "plus %.1f decibels";
+"a11y.gain.minus" = "minus %.1f decibels";
+
+/* Preset names */
+"preset.balanced" = "Balanced";
+"preset.bassBoost" = "Bass Boost";
+"preset.vocal" = "Vocal";
+"preset.acoustic" = "Acoustic";
+"preset.electronic" = "Electronic";
+"preset.classical" = "Classical";
+"preset.podcast" = "Podcast";
+"preset.night" = "Night";
+"preset.flat" = "Flat";

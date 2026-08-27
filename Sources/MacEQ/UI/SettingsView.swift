@@ -5,11 +5,11 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     var body: some View {
         TabView {
-            GeneralSettings().tabItem { Label("일반", systemImage: "gearshape") }
-            AudioSettings().tabItem { Label("오디오", systemImage: "hifispeaker") }
-            EqualizerSettings().tabItem { Label("이퀄라이저", systemImage: "slider.horizontal.3") }
-            AdvancedSettings().tabItem { Label("고급", systemImage: "wrench.and.screwdriver") }
-            AboutSettings().tabItem { Label("정보", systemImage: "info.circle") }
+            GeneralSettings().tabItem { Label(L("settings.tab.general"), systemImage: "gearshape") }
+            AudioSettings().tabItem { Label(L("settings.tab.audio"), systemImage: "hifispeaker") }
+            EqualizerSettings().tabItem { Label(L("settings.tab.equalizer"), systemImage: "slider.horizontal.3") }
+            AdvancedSettings().tabItem { Label(L("settings.tab.advanced"), systemImage: "wrench.and.screwdriver") }
+            AboutSettings().tabItem { Label(L("settings.tab.about"), systemImage: "info.circle") }
         }
         .frame(width: 480, height: 380)
     }
@@ -20,7 +20,7 @@ private struct GeneralSettings: View {
 
     var body: some View {
         Form {
-            Toggle("로그인 시 MacEQ 실행", isOn: Binding(
+            Toggle(L("settings.general.launchAtLogin"), isOn: Binding(
                 get: { if case .enabled = state.loginItemStatus { return true } else { return false } },
                 set: { state.setLaunchAtLogin($0) }))
 
@@ -28,21 +28,21 @@ private struct GeneralSettings: View {
                 // Registration can be refused, and hiding that would leave the
                 // toggle silently doing nothing.
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("MacEQ가 로그인 시 자동으로 시작할 수 없습니다.")
+                    Text(L("settings.general.loginBlocked"))
                         .font(.caption)
-                    Button("시스템 설정에서 허용") { LoginItemManager.openLoginItemsSettings() }
+                    Button(L("settings.general.loginBlocked.action")) { LoginItemManager.openLoginItemsSettings() }
                         .buttonStyle(.link)
                 }
             }
             if case .unavailable(let reason) = state.loginItemStatus {
-                Text("등록 실패: \(reason)")
+                Text(L("settings.general.loginFailed", reason))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Toggle("실행 시 이퀄라이저 켜기", isOn: $state.startEQEnabled)
-            Toggle("메뉴 막대에 표시", isOn: $state.showMenuBarIcon)
-            Toggle("Dock에 표시", isOn: $state.showDockIcon)
+            Toggle(L("settings.general.startEnabled"), isOn: $state.startEQEnabled)
+            Toggle(L("settings.general.menuBarIcon"), isOn: $state.showMenuBarIcon)
+            Toggle(L("settings.general.dockIcon"), isOn: $state.showDockIcon)
         }
         .formStyle(.grouped)
     }
@@ -53,30 +53,30 @@ private struct AudioSettings: View {
 
     var body: some View {
         Form {
-            Picker("출력 장치", selection: Binding(get: { state.preferredDeviceUID ?? "" },
+            Picker(L("settings.audio.outputDevice"), selection: Binding(get: { state.preferredDeviceUID ?? "" },
                                                 set: { state.preferredDeviceUID = $0.isEmpty ? nil : $0 })) {
-                Text("시스템 기본값 따르기").tag("")
+                Text(L("settings.audio.followSystem")).tag("")
                 ForEach(state.availableOutputs, id: \.uid) { device in
                     Text(device.name).tag(device.uid)
                 }
             }
-            Button("장치 목록 새로 고침") { state.refreshDevices() }
+            Button(L("settings.audio.refreshDevices")) { state.refreshDevices() }
                 .buttonStyle(.link)
 
-            Toggle("자동 헤드룸", isOn: Binding(get: { state.live.autoHeadroom },
+            Toggle(L("settings.audio.autoHeadroom"), isOn: Binding(get: { state.live.autoHeadroom },
                                             set: { state.setAutoHeadroom($0) }))
-            Toggle("세이프티 리미터", isOn: $state.limiterEnabled)
+            Toggle(L("settings.audio.safetyLimiter"), isOn: $state.limiterEnabled)
 
-            LabeledContent("엔진") { Text(engineDescription) }
+            LabeledContent(L("settings.audio.engine")) { Text(engineDescription) }
         }
         .formStyle(.grouped)
         .onAppear { state.refreshDevices() }
     }
 
     private var engineDescription: String {
-        guard state.status.sampleRate > 0 else { return "정지됨" }
-        return "\(Int(state.status.sampleRate)) Hz · \(state.status.channels)채널 · "
-            + "\(state.status.bufferFrames) 프레임"
+        guard state.status.sampleRate > 0 else { return L("settings.audio.engine.stopped") }
+        return L("settings.audio.engine.running",
+                 Int(state.status.sampleRate), state.status.channels, Int(state.status.bufferFrames))
     }
 }
 
@@ -86,7 +86,7 @@ private struct EqualizerSettings: View {
 
     var body: some View {
         Form {
-            Picker("기본 프리셋", selection: Binding(get: { state.selectedPresetID },
+            Picker(L("settings.eq.defaultPreset"), selection: Binding(get: { state.selectedPresetID },
                                                 set: { id in
                 if let preset = state.presets.preset(id: id) { state.select(preset: preset) }
             })) {
@@ -96,10 +96,10 @@ private struct EqualizerSettings: View {
             }
 
             HStack {
-                Button("내보내기…") { export() }
-                Button("가져오기…") { performImport() }
+                Button(L("common.export")) { export() }
+                Button(L("common.import")) { performImport() }
                 Spacer()
-                Button("사용자 프리셋 초기화", role: .destructive) { state.resetPresets() }
+                Button(L("settings.eq.resetUserPresets"), role: .destructive) { state.resetPresets() }
             }
 
             if let message {
@@ -116,9 +116,9 @@ private struct EqualizerSettings: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try state.exportPresets(to: url)
-            message = "\(state.presets.userPresets.count)개 프리셋을 내보냈습니다."
+            message = L("settings.eq.exported", state.presets.userPresets.count)
         } catch {
-            message = "내보내기 실패: \(error.localizedDescription)"
+            message = L("settings.eq.exportFailed", error.localizedDescription)
         }
     }
 
@@ -129,9 +129,9 @@ private struct EqualizerSettings: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             let count = try state.importPresets(from: url)
-            message = "\(count)개 프리셋을 가져왔습니다."
+            message = L("settings.eq.imported", count)
         } catch {
-            message = "가져오기 실패: 파일을 읽을 수 없습니다."
+            message = L("settings.eq.importFailed")
         }
     }
 }
@@ -142,20 +142,20 @@ private struct AdvancedSettings: View {
 
     var body: some View {
         Form {
-            Section("진단") {
+            Section(L("settings.advanced.diagnostics")) {
                 DiagnosticsView()
             }
             Section {
-                Button("오디오 엔진 다시 시작") { state.retryAudio() }
-                Button("MacEQ 초기화…", role: .destructive) { confirmReset = true }
+                Button(L("settings.advanced.restartEngine")) { state.retryAudio() }
+                Button(L("settings.advanced.resetEverything"), role: .destructive) { confirmReset = true }
             }
         }
         .formStyle(.grouped)
-        .alert("MacEQ를 초기화할까요?", isPresented: $confirmReset) {
-            Button("초기화", role: .destructive) { state.resetEverything() }
-            Button("취소", role: .cancel) {}
+        .alert(L("settings.advanced.resetConfirm.title"), isPresented: $confirmReset) {
+            Button(L("common.reset"), role: .destructive) { state.resetEverything() }
+            Button(L("common.cancel"), role: .cancel) {}
         } message: {
-            Text("프리셋, 장치별 설정, 로그인 항목이 모두 삭제됩니다.")
+            Text(L("settings.advanced.resetConfirm.message"))
         }
     }
 }
@@ -165,17 +165,17 @@ private struct AboutSettings: View {
 
     var body: some View {
         Form {
-            LabeledContent("버전") { Text("\(AppInfo.version) (\(AppInfo.build))") }
+            LabeledContent(L("settings.about.version")) { Text("\(AppInfo.version) (\(AppInfo.build))") }
             HStack {
-                Button("업데이트 확인") { state.updates.check() }
+                Button(L("settings.about.checkUpdates")) { state.updates.check() }
                 Text(updateDescription).font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 if case .available = state.updates.state {
-                    Button("릴리스 보기") { state.updates.openReleasePage() }
+                    Button(L("settings.about.viewRelease")) { state.updates.openReleasePage() }
                 }
             }
             Link("GitHub", destination: AppInfo.repositoryURL)
-            Text("오디오는 이 Mac을 벗어나지 않습니다. 계정도, 클라우드도, 광고도 없습니다.")
+            Text(L("settings.about.privacy"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -185,10 +185,10 @@ private struct AboutSettings: View {
     private var updateDescription: String {
         switch state.updates.state {
         case .idle: return ""
-        case .checking: return "확인 중…"
-        case .upToDate: return "최신 버전입니다."
-        case .available(let version, _): return "\(version) 사용 가능"
-        case .failed(let reason): return "확인 실패: \(reason)"
+        case .checking: return L("settings.about.checking")
+        case .upToDate: return L("settings.about.upToDate")
+        case .available(let version, _): return L("settings.about.available", version)
+        case .failed(let reason): return L("settings.about.checkFailed", reason)
         }
     }
 }

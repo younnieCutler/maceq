@@ -66,29 +66,35 @@ extension EQPreset {
         UUID(uuidString: String(format: "00000000-0000-4000-8000-%012d", index))!
     }
 
+    /// Index of "Flat" within `builtIns`, so lookups don't have to match on
+    /// the (now localized, no longer stable) display name.
+    static let flatIndex = 8
+
     static let builtIns: [EQPreset] = {
+        // Localization keys, not display names — the display name is looked
+        // up through L() below so it follows the system language.
         let definitions: [(String, [Double])] = [
-            ("Balanced", [2, 2, 1.5, 1, 0.5, 0, 0, -0.5, -0.5, -0.5,
-                          0, 0, 0.5, 0.5, 1, 1, 1.5, 2, 2, 1.5]),
-            ("Bass Boost", [7, 6.5, 6, 5, 4, 2.5, 1, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
-            ("Vocal", [-3, -3, -2.5, -2, -1, 0, 1, 2, 3, 3.5,
-                       4, 4, 3.5, 3, 2, 1, 0.5, 0, -0.5, -1]),
-            ("Acoustic", [2, 2, 1.5, 1, 0.5, 0, 0.5, 1, 1.5, 1.5,
-                          1, 1, 1.5, 2, 2.5, 2.5, 2, 1.5, 1, 0.5]),
-            ("Electronic", [5, 5, 4.5, 3.5, 2, 0.5, -1, -2, -2, -1.5,
-                            -1, -0.5, 0, 1, 2, 3, 3.5, 4, 4, 3.5]),
-            ("Classical", [1, 1, 1, 0.5, 0.5, 0, 0, 0, 0, 0,
-                           0, 0, 0.5, 1, 1, 1.5, 1.5, 2, 2, 1.5]),
-            ("Podcast", [-8, -7, -5, -3, -1, 0.5, 2, 2.5, 3, 3,
-                         3.5, 3.5, 3, 2.5, 2, 1, 0, -1, -2, -3]),
-            ("Night", [-4, -4, -3.5, -3, -2, -1, 0, 0.5, 1, 1.5,
-                       2, 2, 1.5, 1, 0, -1, -2, -3, -4, -4]),
-            ("Flat", [Double](repeating: 0, count: EQBands.count)),
+            ("preset.balanced", [2, 2, 1.5, 1, 0.5, 0, 0, -0.5, -0.5, -0.5,
+                                 0, 0, 0.5, 0.5, 1, 1, 1.5, 2, 2, 1.5]),
+            ("preset.bassBoost", [7, 6.5, 6, 5, 4, 2.5, 1, 0, 0, 0,
+                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+            ("preset.vocal", [-3, -3, -2.5, -2, -1, 0, 1, 2, 3, 3.5,
+                              4, 4, 3.5, 3, 2, 1, 0.5, 0, -0.5, -1]),
+            ("preset.acoustic", [2, 2, 1.5, 1, 0.5, 0, 0.5, 1, 1.5, 1.5,
+                                 1, 1, 1.5, 2, 2.5, 2.5, 2, 1.5, 1, 0.5]),
+            ("preset.electronic", [5, 5, 4.5, 3.5, 2, 0.5, -1, -2, -2, -1.5,
+                                   -1, -0.5, 0, 1, 2, 3, 3.5, 4, 4, 3.5]),
+            ("preset.classical", [1, 1, 1, 0.5, 0.5, 0, 0, 0, 0, 0,
+                                  0, 0, 0.5, 1, 1, 1.5, 1.5, 2, 2, 1.5]),
+            ("preset.podcast", [-8, -7, -5, -3, -1, 0.5, 2, 2.5, 3, 3,
+                                3.5, 3.5, 3, 2.5, 2, 1, 0, -1, -2, -3]),
+            ("preset.night", [-4, -4, -3.5, -3, -2, -1, 0, 0.5, 1, 1.5,
+                              2, 2, 1.5, 1, 0, -1, -2, -3, -4, -4]),
+            ("preset.flat", [Double](repeating: 0, count: EQBands.count)),
         ]
         return definitions.enumerated().map { index, definition in
             EQPreset(id: builtInID(index),
-                     name: definition.0,
+                     name: L(definition.0),
                      settings: EQSettings(bandGainsDB: definition.1),
                      isBuiltIn: true,
                      createdAt: Date(timeIntervalSince1970: 0),
@@ -97,4 +103,5 @@ extension EQPreset {
     }()
 
     static var defaultPreset: EQPreset { builtIns[0] }
+    static var flatPreset: EQPreset { builtIns[flatIndex] }
 }

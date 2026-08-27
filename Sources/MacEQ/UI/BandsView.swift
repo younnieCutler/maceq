@@ -10,11 +10,11 @@ struct BandsView: View {
     var body: some View {
         VStack(spacing: 20) {
             HStack {
-                Text("20밴드 이퀄라이저").font(.title2.weight(.semibold))
+                Text(L("bands.title")).font(.title2.weight(.semibold))
                 Spacer()
-                Button("전체 0 dB") { state.resetBands() }
+                Button(L("bands.resetAll")) { state.resetBands() }
                     .disabled(state.live.isFlat)
-                Button("완료") { dismiss() }
+                Button(L("common.done")) { dismiss() }
                     .keyboardShortcut(.defaultAction)
             }
 
@@ -25,7 +25,7 @@ struct BandsView: View {
             }
             .frame(height: 300)
 
-            Text("드래그로 조절, 값을 두 번 클릭하면 0 dB로 돌아갑니다. ⌘Z 실행 취소.")
+            Text(L("bands.hint"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

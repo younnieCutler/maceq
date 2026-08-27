@@ -24,9 +24,9 @@ struct OnboardingView: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Mac의 소리를\n원하는 대로.")
+            Text(L("onboarding.welcome.title"))
                 .font(.system(size: 34, weight: .semibold))
-            Text("20밴드 이퀄라이저를 모든 소리에 적용합니다.")
+            Text(L("onboarding.welcome.subtitle"))
                 .font(.title3)
                 .foregroundStyle(.secondary)
         }
@@ -37,14 +37,14 @@ struct OnboardingView: View {
             Image(systemName: "waveform")
                 .font(.system(size: 40))
                 .foregroundStyle(.tint)
-            Text("시스템 오디오 접근")
+            Text(L("onboarding.permission.title"))
                 .font(.system(size: 28, weight: .semibold))
-            Text("MacEQ는 소리를 처리할 뿐 녹음하거나 업로드하지 않습니다.\n오디오는 이 Mac을 벗어나지 않습니다.")
+            Text(L("onboarding.permission.body"))
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             if case .needsPermission = state.status.state {
-                Button("시스템 설정 열기") { PermissionManager.openSystemSettings() }
+                Button(L("status.openSettings")) { PermissionManager.openSystemSettings() }
                     .controlSize(.large)
             }
         }
@@ -52,9 +52,9 @@ struct OnboardingView: View {
 
     private var pick: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("준비됐습니다.")
+            Text(L("onboarding.pick.title"))
                 .font(.system(size: 28, weight: .semibold))
-            Text("먼저 들어볼 소리를 골라주세요.")
+            Text(L("onboarding.pick.subtitle"))
                 .foregroundStyle(.secondary)
             Picker("", selection: $chosen) {
                 ForEach(EQPreset.builtIns.prefix(4)) { preset in
@@ -69,10 +69,10 @@ struct OnboardingView: View {
     private var footer: some View {
         HStack {
             if step > 0 {
-                Button("이전") { step -= 1 }
+                Button(L("common.back")) { step -= 1 }
             }
             Spacer()
-            Button(step < 2 ? "계속" : "시작하기") {
+            Button(step < 2 ? L("common.continue") : L("onboarding.start")) {
                 if step < 2 {
                     step += 1
                 } else {

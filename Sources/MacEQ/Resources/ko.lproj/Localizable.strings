@@ -1,0 +1,157 @@
+/* Common */
+"common.save" = "저장";
+"common.cancel" = "취소";
+"common.reset" = "초기화";
+"common.on" = "켜짐";
+"common.off" = "꺼짐";
+"common.duplicate" = "복제";
+"common.delete" = "삭제";
+"common.done" = "완료";
+"common.back" = "이전";
+"common.continue" = "계속";
+"common.export" = "내보내기…";
+"common.import" = "가져오기…";
+
+/* Home */
+"home.savePreset.title" = "프리셋 저장";
+"home.savePreset.field" = "이름";
+"home.savePreset.defaultName" = "내 프리셋";
+"home.savePreset.message" = "현재 곡선을 새 프리셋으로 저장합니다.";
+"home.eq.accessibilityLabel" = "이퀄라이저";
+"home.device.waiting" = "연결 대기 중";
+"home.device.connected" = "연결됨 · %@";
+"home.section.sound" = "사운드";
+"home.saveCurve" = "현재 곡선 저장…";
+"home.updatePreset" = "'%@' 업데이트";
+"home.modified" = "수정됨";
+"home.section.equalizer" = "이퀄라이저";
+"home.editBands" = "20밴드 편집";
+"home.section.preamp" = "프리앰프";
+"home.preamp.auto" = "자동";
+"home.preamp.manual" = "수동";
+"home.autoHeadroom.title" = "자동 헤드룸";
+"home.autoHeadroom.on" = "클리핑을 자동으로 방지합니다. 현재 %.1f dB 확보 중.";
+"home.autoHeadroom.off" = "부스트가 클수록 소리가 깨질 수 있습니다.";
+
+/* Status banner */
+"status.needsPermission.title" = "시스템 오디오 접근이 꺼져 있습니다";
+"status.needsPermission.message" = "MacEQ가 소리를 조절하려면 권한이 필요합니다.";
+"status.openSettings" = "설정 열기";
+"status.failed.title" = "오디오 연결을 복구하지 못했습니다";
+"status.retry" = "다시 연결";
+"status.recovering.title" = "오디오를 다시 연결하는 중";
+"status.recovering.message" = "%d번째 시도";
+
+/* Bands sheet */
+"bands.title" = "20밴드 이퀄라이저";
+"bands.resetAll" = "전체 0 dB";
+"bands.hint" = "드래그로 조절, 값을 두 번 클릭하면 0 dB로 돌아갑니다. ⌘Z 실행 취소.";
+
+/* Menu bar */
+"menubar.equalizer" = "이퀄라이저";
+"menubar.needsPermission" = "시스템 오디오 권한 필요…";
+"menubar.open" = "이퀄라이저 열기…";
+"menubar.settings" = "설정…";
+"menubar.quit" = "MacEQ 종료";
+
+/* Onboarding */
+"onboarding.welcome.title" = "Mac의 소리를\n원하는 대로.";
+"onboarding.welcome.subtitle" = "20밴드 이퀄라이저를 모든 소리에 적용합니다.";
+"onboarding.permission.title" = "시스템 오디오 접근";
+"onboarding.permission.body" = "MacEQ는 소리를 처리할 뿐 녹음하거나 업로드하지 않습니다.\n오디오는 이 Mac을 벗어나지 않습니다.";
+"onboarding.pick.title" = "준비됐습니다.";
+"onboarding.pick.subtitle" = "먼저 들어볼 소리를 골라주세요.";
+"onboarding.start" = "시작하기";
+
+/* Settings */
+"settings.tab.general" = "일반";
+"settings.tab.audio" = "오디오";
+"settings.tab.equalizer" = "이퀄라이저";
+"settings.tab.advanced" = "고급";
+"settings.tab.about" = "정보";
+
+"settings.general.launchAtLogin" = "로그인 시 MacEQ 실행";
+"settings.general.loginBlocked" = "MacEQ가 로그인 시 자동으로 시작할 수 없습니다.";
+"settings.general.loginBlocked.action" = "시스템 설정에서 허용";
+"settings.general.loginFailed" = "등록 실패: %@";
+"settings.general.startEnabled" = "실행 시 이퀄라이저 켜기";
+"settings.general.menuBarIcon" = "메뉴 막대에 표시";
+"settings.general.dockIcon" = "Dock에 표시";
+
+"settings.audio.outputDevice" = "출력 장치";
+"settings.audio.followSystem" = "시스템 기본값 따르기";
+"settings.audio.refreshDevices" = "장치 목록 새로 고침";
+"settings.audio.autoHeadroom" = "자동 헤드룸";
+"settings.audio.safetyLimiter" = "세이프티 리미터";
+"settings.audio.engine" = "엔진";
+"settings.audio.engine.stopped" = "정지됨";
+"settings.audio.engine.running" = "%d Hz · %d채널 · %d 프레임";
+
+"settings.eq.defaultPreset" = "기본 프리셋";
+"settings.eq.resetUserPresets" = "사용자 프리셋 초기화";
+"settings.eq.exported" = "%d개 프리셋을 내보냈습니다.";
+"settings.eq.exportFailed" = "내보내기 실패: %@";
+"settings.eq.imported" = "%d개 프리셋을 가져왔습니다.";
+"settings.eq.importFailed" = "가져오기 실패: 파일을 읽을 수 없습니다.";
+
+"settings.advanced.diagnostics" = "진단";
+"settings.advanced.restartEngine" = "오디오 엔진 다시 시작";
+"settings.advanced.resetEverything" = "MacEQ 초기화…";
+"settings.advanced.resetConfirm.title" = "MacEQ를 초기화할까요?";
+"settings.advanced.resetConfirm.message" = "프리셋, 장치별 설정, 로그인 항목이 모두 삭제됩니다.";
+
+"settings.about.version" = "버전";
+"settings.about.checkUpdates" = "업데이트 확인";
+"settings.about.viewRelease" = "릴리스 보기";
+"settings.about.privacy" = "오디오는 이 Mac을 벗어나지 않습니다. 계정도, 클라우드도, 광고도 없습니다.";
+"settings.about.checking" = "확인 중…";
+"settings.about.upToDate" = "최신 버전입니다.";
+"settings.about.available" = "%@ 사용 가능";
+"settings.about.checkFailed" = "확인 실패: %@";
+
+/* Diagnostics */
+"diagnostics.copy" = "진단 정보 복사";
+"diagnostics.copied" = "복사됨";
+"diagnostics.silent" = "무음";
+"diagnostics.engine" = "엔진";
+"diagnostics.output" = "출력";
+"diagnostics.sampleRate" = "샘플레이트";
+"diagnostics.channels" = "채널";
+"diagnostics.buffer" = "버퍼";
+"diagnostics.buffer.frames" = "%d 프레임";
+"diagnostics.equalizer" = "이퀄라이저";
+"diagnostics.autoHeadroom" = "자동 헤드룸";
+"diagnostics.effectivePreamp" = "실효 프리앰프";
+"diagnostics.peakIn" = "입력 피크";
+"diagnostics.peakOut" = "출력 피크";
+"diagnostics.limiter" = "리미터";
+"diagnostics.lastError" = "마지막 오류";
+"diagnostics.none" = "없음";
+"diagnostics.state.stopped" = "정지됨";
+"diagnostics.state.running" = "실행 중";
+"diagnostics.state.needsPermission" = "권한 없음";
+"diagnostics.state.recovering" = "복구 중 (%d)";
+"diagnostics.state.failed" = "실패 — %@";
+
+/* Curve editor accessibility */
+"curve.a11y.label" = "이퀄라이저 곡선";
+"curve.a11y.hint" = "자세히 조절하려면 20밴드 편집을 사용하세요";
+"curve.a11y.allZero" = "모든 밴드 0데시벨";
+
+/* Band accessibility (VoiceOver reads units in full) */
+"a11y.frequency.khz" = "%.1f 킬로헤르츠";
+"a11y.frequency.hz" = "%d 헤르츠";
+"a11y.gain.zero" = "0 데시벨";
+"a11y.gain.plus" = "플러스 %.1f 데시벨";
+"a11y.gain.minus" = "마이너스 %.1f 데시벨";
+
+/* Preset names */
+"preset.balanced" = "밸런스";
+"preset.bassBoost" = "베이스 부스트";
+"preset.vocal" = "보컬";
+"preset.acoustic" = "어쿠스틱";
+"preset.electronic" = "일렉트로닉";
+"preset.classical" = "클래식";
+"preset.podcast" = "팟캐스트";
+"preset.night" = "야간";
+"preset.flat" = "플랫";
