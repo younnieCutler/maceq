@@ -159,10 +159,10 @@ struct PresetChips: View {
                     Text(preset.name)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
+                        .padding(.vertical, 8)
                 }
                 .buttonStyle(.bordered)
-                .tint(preset.id == state.selectedPresetID ? .accentColor : .secondary)
+                .tint(preset.id == state.selectedPresetID ? .macEQAccent : .secondary)
                 .accessibilityAddTraits(preset.id == state.selectedPresetID ? .isSelected : [])
                 .contextMenu {
                     Button("복제") { state.duplicate(preset) }
@@ -225,8 +225,8 @@ struct StatusBanner: View {
                 Button(actionTitle, action: action)
             }
         }
-        .padding(14)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+        .padding(16)
+        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
     }
 }

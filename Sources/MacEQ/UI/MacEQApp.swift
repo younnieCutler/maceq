@@ -9,6 +9,7 @@ struct MacEQApp: App {
         Window("MacEQ", id: WindowID.main) {
             RootView()
                 .environmentObject(delegate.state)
+                .tint(.macEQAccent)
         }
         .defaultSize(width: 520, height: 640)
         .windowResizability(.contentSize)
@@ -27,6 +28,7 @@ struct MacEQApp: App {
         Settings {
             SettingsView()
                 .environmentObject(delegate.state)
+                .tint(.macEQAccent)
         }
 
         MenuBarExtra("MacEQ", systemImage: delegate.state.eqEnabled ? "slider.horizontal.3" : "slider.horizontal.below.rectangle",
@@ -34,6 +36,7 @@ struct MacEQApp: App {
                                          set: { delegate.state.showMenuBarIcon = $0 })) {
             MenuBarContent()
                 .environmentObject(delegate.state)
+                .tint(.macEQAccent)
         }
         .menuBarExtraStyle(.menu)
     }
@@ -90,5 +93,32 @@ struct RootView: View {
             }
         }
         .frame(minWidth: 480, minHeight: 600)
+        .onAppear(perform: recenterIfOffScreen)
+    }
+
+    /// macOS restores the window to its last-known frame. That frame can sit
+    /// on a screen AppKit still lists — an extended display that isn't
+    /// currently being looked at — while being nowhere near the main
+    /// display. As an accessory-policy app with no Dock icon, that reads as
+    /// "MacEQ didn't open" rather than "the window is on another screen".
+    /// Recenter onto the main screen whenever the restored frame misses it.
+    ///
+    /// Deferred to the next run loop turn: at `onAppear` time AppKit has not
+    /// finished applying the restored frame yet, so checking synchronously
+    /// reads the window's pre-restoration position.
+    private func recenterIfOffScreen() {
+        DispatchQueue.main.async {
+            // `NSScreen.main` is the screen under the key window — which, if
+            // the window restored onto a stale/extended display, is that
+            // same wrong screen. `.screens.first` is always the display that
+            // actually carries the menu bar, so it's the one to fall back to.
+            guard let window = NSApp.windows.first(where: { $0.title == "MacEQ" }),
+                  let primaryScreen = NSScreen.screens.first else { return }
+            if !primaryScreen.visibleFrame.intersects(window.frame) {
+                window.setFrameOrigin(NSPoint(
+                    x: primaryScreen.visibleFrame.midX - window.frame.width / 2,
+                    y: primaryScreen.visibleFrame.midY - window.frame.height / 2))
+            }
+        }
     }
 }
