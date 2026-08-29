@@ -138,19 +138,19 @@ struct HomeView: View {
             if !state.presets.userPresets.isEmpty {
                 Section(L("home.presets.user")) {
                     ForEach(state.presets.userPresets) { preset in
-                        Menu {
-                            presetChoice(preset)
-                            Divider()
-                            Button(L("home.renamePreset")) {
-                                presetToRename = preset
-                                renamedPreset = preset.name
-                            }
-                            Button(L("common.duplicate")) { state.duplicate(preset) }
-                            Button(L("common.delete"), role: .destructive) { state.delete(preset) }
-                        } label: {
-                            menuSelectionLabel(preset.name, selected: preset.id == state.selectedPresetID)
-                        }
+                        presetChoice(preset)
                     }
+                }
+            }
+
+            if let preset = state.selectedPreset, !preset.isBuiltIn {
+                Menu(L("home.userPreset.actions", preset.name)) {
+                    Button(L("home.renamePreset")) {
+                        presetToRename = preset
+                        renamedPreset = preset.name
+                    }
+                    Button(L("common.duplicate")) { state.duplicate(preset) }
+                    Button(L("common.delete"), role: .destructive) { state.delete(preset) }
                 }
             }
 

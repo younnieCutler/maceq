@@ -13,6 +13,13 @@ final class BandModeTests: XCTestCase {
         XCTAssertNotEqual(collapsed[1], 10)
     }
 
+    func testCollapseToTenIsIdempotent() {
+        let gains = [1.0, 10, -2, 4, 0, 3, -1, 2, 0, -4,
+                     1, 5, 0, -3, 2, 6, 0, -2, 1, 4]
+        let collapsed = EQBands.collapseToTen(gains)
+        XCTAssertEqual(EQBands.collapseToTen(collapsed), collapsed)
+    }
+
     func testTenBandEditDerivesTheHiddenHalfOctaveBands() async {
         let url = temporarySettingsURL()
         defer { try? FileManager.default.removeItem(at: url) }
@@ -51,6 +58,23 @@ final class BandModeTests: XCTestCase {
             let visible = EQBands.tenBandIndices.map { state.live.bandGainsDB[$0] }
             XCTAssertEqual(state.live.bandGainsDB, EQBands.expandedFromTen(visible))
             XCTAssertFalse(state.isModified)
+        }
+    }
+
+    func testTenBandStateIsStableAcrossReload() async {
+        let url = temporarySettingsURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        await MainActor.run {
+            let store = SettingsStore(url: url)
+            let first = AppState(store: store)
+            first.showTwentyBands = true
+            first.setBandGain(1, dB: 10)
+            first.showTwentyBands = false
+            store.flush()
+            let saved = store.settings.live
+
+            let reloaded = AppState(store: SettingsStore(url: url))
+            XCTAssertEqual(reloaded.live, saved)
         }
     }
 

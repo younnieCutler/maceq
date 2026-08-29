@@ -44,7 +44,12 @@ enum EQBands {
     }
 
     static func collapseToTen(_ gains: [Double]) -> [Double] {
-        expandedFromTen(tenBandGains(from: gains))
+        let visible = tenBandIndices.map { value(at: $0, in: gains) }
+        let normalized = expandedFromTen(visible)
+        if normalized == (0..<count).map({ value(at: $0, in: gains) }) {
+            return normalized
+        }
+        return expandedFromTen(tenBandGains(from: gains))
     }
 
     private static func value(at index: Int, in gains: [Double]) -> Double {

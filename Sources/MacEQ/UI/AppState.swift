@@ -188,10 +188,14 @@ final class AppState: ObservableObject {
 
     func delete(_ preset: EQPreset) {
         guard !preset.isBuiltIn else { return }
+        let wasSelected = selectedPresetID == preset.id
         presets.delete(id: preset.id)
         normalizeDeviceSelections(for: [preset.id])
-        if selectedPresetID == preset.id {
-            select(preset: EQPreset.defaultPreset)
+        if wasSelected {
+            // Keep the live sound; only move the now-missing reference to Flat.
+            selectedPresetID = EQPreset.flatPreset.id
+            persist { $0.selectedPresetID = EQPreset.flatPreset.id }
+            rememberCurrentDeviceState()
         }
         persistPresets()
     }

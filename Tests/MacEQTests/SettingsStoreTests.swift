@@ -49,6 +49,24 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(SettingsStore(url: url).settings.selectedPresetID, selected.id)
     }
 
+    func testSelectingUserPresetUpdatesLiveSound() async {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        await MainActor.run {
+            let settings = EQSettings(bandGainsDB: [3] + [Double](repeating: 0, count: 19),
+                                       preampDB: -1)
+            let userPreset = EQPreset(name: "Custom", settings: settings)
+            let store = SettingsStore(url: url)
+            store.update { $0.userPresets = [userPreset] }
+            let state = AppState(store: store)
+            state.showTwentyBands = true
+            state.select(preset: userPreset)
+
+            XCTAssertEqual(state.selectedPresetID, userPreset.id)
+            XCTAssertEqual(state.live, settings)
+        }
+    }
+
     func testEditorPreferencesPersist() async {
         let url = tempURL()
         defer { try? FileManager.default.removeItem(at: url) }
@@ -119,6 +137,31 @@ final class SettingsStoreTests: XCTestCase {
             let deviceState = store.settings.deviceStates?["device-a"]
             XCTAssertEqual(deviceState?.live, live)
             XCTAssertEqual(deviceState?.selectedPresetID, EQPreset.flatPreset.id)
+        }
+    }
+
+    func testDeletingSelectedPresetKeepsCurrentLiveSound() async {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        await MainActor.run {
+            let live = EQSettings(bandGainsDB: [2] + [Double](repeating: 0, count: 19),
+                                  preampDB: -2,
+                                  autoHeadroom: false)
+            let userPreset = EQPreset(name: "AirPods", settings: live)
+            let store = SettingsStore(url: url)
+            store.update {
+                $0.showTwentyBands = true
+                $0.userPresets = [userPreset]
+                $0.selectedPresetID = userPreset.id
+                $0.live = live
+            }
+            let state = AppState(store: store)
+            state.delete(userPreset)
+            store.flush()
+
+            XCTAssertEqual(state.live, live)
+            XCTAssertEqual(state.selectedPresetID, EQPreset.flatPreset.id)
+            XCTAssertTrue(state.isModified)
         }
     }
 

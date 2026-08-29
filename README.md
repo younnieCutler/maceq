@@ -11,7 +11,7 @@ System Audio → Core Audio Tap → 20-band EQ → Safety Limiter → Physical O
 
 MVP. Gates A–D from `plan/gate-a.md` are complete: audio pipeline, 20-band
 engine with Auto Headroom and a safety limiter, device hot-swap and recovery,
-a SwiftUI Home/Curve Editor/Presets/Settings/Menu Bar UI, and 49 automated
+a SwiftUI Home/Curve Editor/Presets/Settings/Menu Bar UI, and 53 automated
 tests. Gate E (this document) covers packaging and distribution.
 
 ## How it works
@@ -35,7 +35,7 @@ buffer, no drift, no resampling. Full detail and measurements in
 ## Build and run
 
 ```sh
-swift test            # 49 tests, DSP + persistence + presets
+swift test            # 53 tests, DSP + persistence + presets
 make bundle            # debug build → MacEQ.app, ad-hoc signed
 CONFIG=release make bundle
 open MacEQ.app          # launch via `open`, not the raw binary (see Permission)
