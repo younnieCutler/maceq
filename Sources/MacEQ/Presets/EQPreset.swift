@@ -34,7 +34,11 @@ struct EQSettings: Codable, Equatable, Sendable {
         }
     }
 
-    var isFlat: Bool { bandGainsDB.allSatisfy { abs($0) < 1e-6 } }
+    var isFlat: Bool {
+        bandGainsDB.allSatisfy { abs($0) < 1e-6 }
+            && abs(preampDB) < 1e-6
+            && autoHeadroom
+    }
 }
 
 struct EQPreset: Codable, Equatable, Identifiable, Sendable {

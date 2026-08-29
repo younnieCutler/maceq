@@ -338,9 +338,15 @@ struct StereoOutputMeter: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text("L")
-            meter
-            Text("R")
+            HStack(spacing: 6) {
+                Text("L")
+                Text("R")
+            }
+            HStack(alignment: .bottom, spacing: 6) {
+                meter(for: state.status.peakOutLeftDB)
+                meter(for: state.status.peakOutRightDB)
+            }
+            .frame(maxHeight: .infinity)
         }
         .font(.caption2.monospaced())
         .foregroundStyle(.secondary)
@@ -350,35 +356,36 @@ struct StereoOutputMeter: View {
         .accessibilityValue(levelDescription)
     }
 
-    private var meter: some View {
+    private func meter(for db: Double) -> some View {
         GeometryReader { geometry in
             let height = max(geometry.size.height, 1)
-            let levelHeight = height * normalizedLevel
+            let level = normalizedLevel(for: db)
             ZStack(alignment: .bottom) {
                 Rectangle()
                     .fill(.secondary.opacity(0.18))
                     .frame(width: 2)
                 Rectangle()
-                    .fill(isClipping ? Color.red : Color.primary.opacity(0.6))
-                    .frame(width: 3, height: max(levelHeight, normalizedLevel > 0 ? 1 : 0))
+                    .fill(isClipping(db) ? Color.red : Color.primary.opacity(0.6))
+                    .frame(width: 3, height: max(height * level, level > 0 ? 1 : 0))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 12)
+        .frame(width: 3)
     }
 
-    private var normalizedLevel: CGFloat {
-        guard state.status.peakOutDB.isFinite else { return 0 }
-        return CGFloat(min(max((state.status.peakOutDB + 60) / 60, 0), 1))
+    private func normalizedLevel(for db: Double) -> CGFloat {
+        guard db.isFinite else { return 0 }
+        return CGFloat(min(max((db + 60) / 60, 0), 1))
     }
 
-    private var isClipping: Bool {
-        state.status.peakOutDB.isFinite && state.status.peakOutDB >= -0.1
+    private func isClipping(_ db: Double) -> Bool {
+        db.isFinite && db >= -0.1
     }
 
     private var levelDescription: String {
-        state.status.peakOutDB.isFinite
-            ? String(format: "%.1f dBFS", state.status.peakOutDB)
-            : L("diagnostics.silent")
+        func describe(_ db: Double) -> String {
+            db.isFinite ? String(format: "%.1f dBFS", db) : L("diagnostics.silent")
+        }
+        return "L \(describe(state.status.peakOutLeftDB)), R \(describe(state.status.peakOutRightDB))"
     }
 }

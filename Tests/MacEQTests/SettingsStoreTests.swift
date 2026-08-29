@@ -67,6 +67,35 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(settings.appearance, AppearanceMode.dark.rawValue)
     }
 
+    func testDeviceSoundStateRoundTrips() throws {
+        var settings = AppSettings()
+        let expected = DeviceEQState(live: EQSettings(bandGainsDB: [2] + [Double](repeating: 0, count: 19),
+                                                      preampDB: -2,
+                                                      autoHeadroom: false),
+                                     selectedPresetID: EQPreset.flatPreset.id,
+                                     showTwentyBands: true)
+        settings.deviceStates = ["device-a": expected]
+
+        let data = try JSONEncoder().encode(settings)
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
+        XCTAssertEqual(decoded.deviceStates?["device-a"], expected)
+    }
+
+    func testResetReturnsToFlatSoundState() async {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        await MainActor.run {
+            let state = AppState(store: SettingsStore(url: url))
+            state.setBandGain(0, dB: 4)
+            state.setPreampDB(-2)
+            state.setAutoHeadroom(false)
+            state.resetBands()
+            XCTAssertEqual(state.live, EQPreset.flatPreset.settings)
+            XCTAssertEqual(state.selectedPresetID, EQPreset.flatPreset.id)
+        }
+    }
+
     /// A corrupt settings file must not crash the app, and must not be
     /// silently deleted — it is the only evidence of what went wrong.
     func testCorruptFileFallsBackAndIsPreservedAsBackup() throws {

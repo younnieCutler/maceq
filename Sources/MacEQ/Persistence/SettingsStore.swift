@@ -1,5 +1,11 @@
 import Foundation
 
+struct DeviceEQState: Codable, Equatable {
+    var live: EQSettings
+    var selectedPresetID: UUID
+    var showTwentyBands: Bool
+}
+
 /// Everything that has to survive a relaunch.
 struct AppSettings: Codable, Equatable {
     /// Bumped whenever the shape changes so `Migration` knows what it is
@@ -28,6 +34,8 @@ struct AppSettings: Codable, Equatable {
     /// Device UID -> preset id, so plugging headphones back in restores what
     /// they sounded like last time.
     var devicePresets: [String: UUID] = [:]
+    /// Full sound snapshot per output device; optional for older settings.
+    var deviceStates: [String: DeviceEQState]?
 
     var userPresets: [EQPreset] = []
 
@@ -129,6 +137,9 @@ enum Migration {
             result.selectedPresetID = EQPreset.defaultPreset.id
         }
         result.devicePresets = result.devicePresets.filter { known.contains($0.value) }
+        if let deviceStates = result.deviceStates {
+            result.deviceStates = deviceStates.filter { known.contains($0.value.selectedPresetID) }
+        }
         return result
     }
 }

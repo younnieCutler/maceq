@@ -227,6 +227,13 @@ struct EQFader: View {
                     .fill((isActive || isHovered) ? tint : Color.primary.opacity(0.72))
                     .frame(width: 20, height: 4)
                     .offset(y: thumbOffset)
+
+                if isActive {
+                    Text(String(format: "%+.1f", value))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(tint)
+                        .offset(y: thumbOffset - 16)
+                }
             }
             .frame(height: railHeight)
 

@@ -18,8 +18,18 @@ final class AppState: ObservableObject {
     @Published var showMenuBarIcon: Bool { didSet { persist { $0.showMenuBarIcon = self.showMenuBarIcon } } }
     @Published var startEQEnabled: Bool { didSet { persist { $0.startEQEnabled = self.startEQEnabled } } }
     @Published var limiterEnabled: Bool { didSet { applyLimiter() } }
-    @Published var showTwentyBands: Bool { didSet { persist { $0.showTwentyBands = self.showTwentyBands } } }
-    @Published var spectrumEnabled: Bool { didSet { persist { $0.spectrumEnabled = self.spectrumEnabled } } }
+    @Published var showTwentyBands: Bool {
+        didSet {
+            persist { $0.showTwentyBands = self.showTwentyBands }
+            rememberCurrentDeviceState()
+        }
+    }
+    @Published var spectrumEnabled: Bool {
+        didSet {
+            session.setSpectrumEnabled(spectrumEnabled)
+            persist { $0.spectrumEnabled = self.spectrumEnabled }
+        }
+    }
     @Published var appearance: AppearanceMode { didSet { persist { $0.appearance = self.appearance.rawValue } } }
     @Published private(set) var availableOutputs: [OutputDevice] = []
     @Published var preferredDeviceUID: String? { didSet { applyPreferredDevice() } }
@@ -73,6 +83,7 @@ final class AppState: ObservableObject {
         refreshDevices()
         session.setPreferredDevice(uid: preferredDeviceUID)
         session.setLimiterEnabled(limiterEnabled)
+        session.setSpectrumEnabled(spectrumEnabled)
         session.setEnabled(eqEnabled)
         session.apply(settings: live)
         session.start()
@@ -116,10 +127,7 @@ final class AppState: ObservableObject {
     }
 
     func resetBands() {
-        beginGesture()
-        var settings = live
-        settings.bandGainsDB = [Double](repeating: 0, count: EQBands.count)
-        commit(settings)
+        select(preset: EQPreset.flatPreset)
     }
 
     func select(preset: EQPreset) {
@@ -146,6 +154,7 @@ final class AppState: ObservableObject {
         live = settings
         session.apply(settings: settings)
         persist { $0.live = settings }
+        rememberCurrentDeviceState()
     }
 
     // MARK: - Presets
@@ -168,6 +177,7 @@ final class AppState: ObservableObject {
         let copy = presets.duplicate(preset)
         selectedPresetID = copy.id
         persistPresets()
+        rememberCurrentDeviceState()
     }
 
     func rename(_ preset: EQPreset, to name: String) {
@@ -218,20 +228,52 @@ final class AppState: ObservableObject {
         persist { $0.preferredDeviceUID = self.preferredDeviceUID }
     }
 
+    private func rememberCurrentDeviceState(uid: String? = nil) {
+        guard !restoringForDevice else { return }
+        let deviceUID = uid ?? status.deviceUID
+        guard !deviceUID.isEmpty else { return }
+        let snapshot = DeviceEQState(live: live,
+                                     selectedPresetID: selectedPresetID,
+                                     showTwentyBands: showTwentyBands)
+        persist {
+            var states = $0.deviceStates ?? [:]
+            states[deviceUID] = snapshot
+            $0.deviceStates = states
+        }
+    }
+
     private func rememberPresetForCurrentDevice() {
         guard !restoringForDevice, !status.deviceUID.isEmpty else { return }
         let uid = status.deviceUID
         let presetID = selectedPresetID
         persist { $0.devicePresets[uid] = presetID }
+        rememberCurrentDeviceState()
     }
 
     /// When the output changes, restore whatever this device sounded like last
     /// time. Guarded so the restore does not immediately write itself back.
     private func handle(status newStatus: AudioSession.Status) {
+        let previousDeviceUID = lastSeenDeviceUID
+        if !previousDeviceUID.isEmpty, previousDeviceUID != newStatus.deviceUID {
+            rememberCurrentDeviceState(uid: previousDeviceUID)
+        }
         status = newStatus
         guard !newStatus.deviceUID.isEmpty, newStatus.deviceUID != lastSeenDeviceUID else { return }
         lastSeenDeviceUID = newStatus.deviceUID
         refreshDevices()
+
+        if let deviceState = store.settings.deviceStates?[newStatus.deviceUID] {
+            restoringForDevice = true
+            selectedPresetID = deviceState.selectedPresetID
+            showTwentyBands = deviceState.showTwentyBands
+            commit(deviceState.live)
+            persist { $0.selectedPresetID = deviceState.selectedPresetID }
+            restoringForDevice = false
+            rememberCurrentDeviceState()
+            Log.info("restored full sound state for \(newStatus.deviceName)")
+            return
+        }
+
         guard let presetID = store.settings.devicePresets[newStatus.deviceUID],
               let preset = presets.preset(id: presetID),
               presetID != selectedPresetID else { return }
@@ -240,6 +282,7 @@ final class AppState: ObservableObject {
         commit(preset.settings)
         persist { $0.selectedPresetID = preset.id }
         restoringForDevice = false
+        rememberCurrentDeviceState()
         Log.info("restored preset '\(preset.name)' for \(newStatus.deviceName)")
     }
 
@@ -268,6 +311,9 @@ final class AppState: ObservableObject {
     /// Removes presets, device mappings and the login item, and rebuilds the
     /// audio pipeline from defaults.
     func resetEverything() {
+        let previousRestoringState = restoringForDevice
+        restoringForDevice = true
+        defer { restoringForDevice = previousRestoringState }
         LoginItemManager.setEnabled(false)
         store.resetToDefaults()
         presets = PresetStore(userPresets: [])
