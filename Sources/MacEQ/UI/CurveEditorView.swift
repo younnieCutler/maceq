@@ -16,7 +16,7 @@ struct CurveEditorView: View {
     private var visibleBandIndices: [Int] {
         state.showTwentyBands
             ? Array(0..<EQBands.count)
-            : Array(stride(from: 0, to: EQBands.count, by: 2))
+            : EQBands.tenBandIndices
     }
 
     var body: some View {
@@ -43,10 +43,9 @@ struct CurveEditorView: View {
                         tint: tint(for: index),
                         onBegin: {
                             activeBand = index
-                            state.beginGesture()
                         },
                         onChange: { gain in
-                            state.setBandGain(index, dB: gain, isGesture: true)
+                            state.setBandGain(index, dB: gain)
                         },
                         onEnd: {
                             activeBand = nil
@@ -236,6 +235,21 @@ struct EQFader: View {
                 }
             }
             .frame(height: railHeight)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        if !isDragging {
+                            isDragging = true
+                            onBegin()
+                        }
+                        onChange(gain(forY: gesture.location.y))
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        onEnd()
+                    }
+            )
 
             Text(EQBands.shortLabel(index))
                 .font(.caption2.monospacedDigit())
@@ -244,21 +258,6 @@ struct EQFader: View {
                 .frame(height: 16)
         }
         .opacity(isEQEnabled ? 1 : 0.62)
-        .contentShape(Rectangle())
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { gesture in
-                    if !isDragging {
-                        isDragging = true
-                        onBegin()
-                    }
-                    onChange(gain(forY: gesture.location.y))
-                }
-                .onEnded { _ in
-                    isDragging = false
-                    onEnd()
-                }
-        )
         .onHover { isHovered = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(EQBands.spokenLabel(index))

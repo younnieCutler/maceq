@@ -17,3 +17,5 @@ jobs:
         run: swift build -c release
       - name: Test
         run: swift test
+      - name: Package DMG
+        run: MACEQ_IDENTITY=- ./scripts/dmg.sh 0.0.0

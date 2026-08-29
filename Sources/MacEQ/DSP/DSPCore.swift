@@ -24,6 +24,7 @@ final class DSPCore: @unchecked Sendable {
 
     static let maxChannels = 8
     static let spectrumBinCount = EQBands.count
+    static let spectrumBufferCount = 3
     private static let spectrumWindowSize = 1_024
 
     fileprivate struct Shared {
@@ -60,6 +61,7 @@ final class DSPCore: @unchecked Sendable {
         var ioSpectrumEnabled = true
         var spectrumWasEnabled = true
         var spectrumPublishedIndex: Int32 = 0
+        var spectrumReadIndex: Int32 = -1
     }
 
     struct Meters {
@@ -103,8 +105,9 @@ final class DSPCore: @unchecked Sendable {
                           count: EQBands.count * DSPCore.maxChannels)
         scratch = .allocate(capacity: DSPCore.maxChannels)
         scratch.initialize(repeating: 0, count: DSPCore.maxChannels)
-        spectrumBuffers = .allocate(capacity: DSPCore.spectrumBinCount * 2)
-        spectrumBuffers.initialize(repeating: -80, count: DSPCore.spectrumBinCount * 2)
+        spectrumBuffers = .allocate(capacity: DSPCore.spectrumBinCount * DSPCore.spectrumBufferCount)
+        spectrumBuffers.initialize(repeating: -80,
+                                    count: DSPCore.spectrumBinCount * DSPCore.spectrumBufferCount)
         spectrumQ1 = .allocate(capacity: DSPCore.spectrumBinCount)
         spectrumQ1.initialize(repeating: 0, count: DSPCore.spectrumBinCount)
         spectrumQ2 = .allocate(capacity: DSPCore.spectrumBinCount)
@@ -121,7 +124,7 @@ final class DSPCore: @unchecked Sendable {
         coefficients.deinitialize(count: EQBands.count); coefficients.deallocate()
         states.deinitialize(count: EQBands.count * DSPCore.maxChannels); states.deallocate()
         scratch.deinitialize(count: DSPCore.maxChannels); scratch.deallocate()
-        spectrumBuffers.deinitialize(count: DSPCore.spectrumBinCount * 2); spectrumBuffers.deallocate()
+        spectrumBuffers.deinitialize(count: DSPCore.spectrumBinCount * DSPCore.spectrumBufferCount); spectrumBuffers.deallocate()
         spectrumQ1.deinitialize(count: DSPCore.spectrumBinCount); spectrumQ1.deallocate()
         spectrumQ2.deinitialize(count: DSPCore.spectrumBinCount); spectrumQ2.deallocate()
         spectrumCoefficients.deinitialize(count: DSPCore.spectrumBinCount); spectrumCoefficients.deallocate()
@@ -145,6 +148,7 @@ final class DSPCore: @unchecked Sendable {
         shared.pointee.ioSpectrumEnabled = shared.pointee.spectrumEnabled
         shared.pointee.spectrumWasEnabled = shared.pointee.spectrumEnabled
         shared.pointee.spectrumPublishedIndex = 0
+        shared.pointee.spectrumReadIndex = -1
         shared.pointee.generation &+= 1
         os_unfair_lock_unlock(&shared.pointee.lock)
 
@@ -163,8 +167,9 @@ final class DSPCore: @unchecked Sendable {
             spectrumCoefficients[index] = 2 * cos(2 * Double.pi * frequency / self.sampleRate)
             spectrumQ1[index] = 0
             spectrumQ2[index] = 0
-            spectrumBuffers[index] = -80
-            spectrumBuffers[DSPCore.spectrumBinCount + index] = -80
+            for buffer in 0..<DSPCore.spectrumBufferCount {
+                spectrumBuffers[buffer * DSPCore.spectrumBinCount + index] = -80
+            }
         }
         shared.pointee.appliedGeneration = shared.pointee.generation
         shared.pointee.preampGain = pow(10, shared.pointee.preampDB / 20)
@@ -232,11 +237,31 @@ final class DSPCore: @unchecked Sendable {
     }
 
     /// Copies the smoothed spectrum on the control side; the render thread
-    /// never allocates or takes a lock for metering. The published buffer is
-    /// never written again until another buffer has been published.
+    /// never allocates or takes a lock for metering. A reader claims the
+    /// published buffer while copying, and the writer always uses another one.
     // ponytail: OSAtomic is deprecated but available on the macOS 14 target;
     //           replace it with a C11 atomic shim when the minimum rises.
     func readSpectrumDB() -> [Float] {
+        for _ in 0..<DSPCore.spectrumBufferCount {
+            let published = Int(OSAtomicAdd32Barrier(0, &shared.pointee.spectrumPublishedIndex))
+            guard OSAtomicCompareAndSwap32Barrier(-1,
+                                                  Int32(published),
+                                                  &shared.pointee.spectrumReadIndex) else { continue }
+            let stillPublished = Int(OSAtomicAdd32Barrier(0, &shared.pointee.spectrumPublishedIndex))
+            guard stillPublished == published else {
+                _ = OSAtomicCompareAndSwap32Barrier(Int32(published),
+                                                    -1,
+                                                    &shared.pointee.spectrumReadIndex)
+                continue
+            }
+            let start = spectrumBuffers.advanced(by: published * DSPCore.spectrumBinCount)
+            let result = Array(UnsafeBufferPointer(start: start, count: DSPCore.spectrumBinCount))
+            _ = OSAtomicCompareAndSwap32Barrier(Int32(published),
+                                                -1,
+                                                &shared.pointee.spectrumReadIndex)
+            return result
+        }
+
         let published = Int(OSAtomicAdd32Barrier(0, &shared.pointee.spectrumPublishedIndex))
         let start = spectrumBuffers.advanced(by: published * DSPCore.spectrumBinCount)
         return Array(UnsafeBufferPointer(start: start, count: DSPCore.spectrumBinCount))
@@ -308,8 +333,9 @@ final class DSPCore: @unchecked Sendable {
                 context.spectrumQ1[bin] = 0
                 context.spectrumQ2[bin] = 0
                 if !shared.pointee.ioSpectrumEnabled {
-                    context.spectrumBuffers[bin] = -80
-                    context.spectrumBuffers[DSPCore.spectrumBinCount + bin] = -80
+                    for buffer in 0..<DSPCore.spectrumBufferCount {
+                        context.spectrumBuffers[buffer * DSPCore.spectrumBinCount + bin] = -80
+                    }
                 }
             }
             shared.pointee.spectrumWasEnabled = shared.pointee.ioSpectrumEnabled
@@ -396,27 +422,42 @@ final class DSPCore: @unchecked Sendable {
                         shared.pointee.spectrumSampleCount += 1
                         if shared.pointee.spectrumSampleCount == DSPCore.spectrumWindowSize {
                             let publishedIndex = Int(OSAtomicAdd32Barrier(0, &shared.pointee.spectrumPublishedIndex))
-                            let writeIndex = publishedIndex == 0 ? 1 : 0
-                            let previousBuffer = context.spectrumBuffers
-                                .advanced(by: publishedIndex * DSPCore.spectrumBinCount)
-                            let writeBuffer = context.spectrumBuffers
-                                .advanced(by: writeIndex * DSPCore.spectrumBinCount)
-                            for bin in 0..<DSPCore.spectrumBinCount {
-                                let q1 = context.spectrumQ1[bin]
-                                let q2 = context.spectrumQ2[bin]
-                                let db = SpectrumMath.magnitudeDB(
-                                    q1: q1,
-                                    q2: q2,
-                                    coefficient: context.spectrumCoefficients[bin],
-                                    windowSize: DSPCore.spectrumWindowSize)
-                                let previous = Double(previousBuffer[bin])
-                                writeBuffer[bin] = Float(previous + (db - previous) * 0.35)
-                                context.spectrumQ1[bin] = 0
-                                context.spectrumQ2[bin] = 0
+                            let readerIndex = Int(OSAtomicAdd32Barrier(0, &shared.pointee.spectrumReadIndex))
+                            var writeIndex: Int?
+                            for offset in 1..<DSPCore.spectrumBufferCount {
+                                let candidate = (publishedIndex + offset) % DSPCore.spectrumBufferCount
+                                if candidate != readerIndex {
+                                    writeIndex = candidate
+                                    break
+                                }
                             }
-                            _ = OSAtomicCompareAndSwap32Barrier(Int32(publishedIndex),
-                                                               Int32(writeIndex),
-                                                               &shared.pointee.spectrumPublishedIndex)
+                            if let writeIndex {
+                                let previousBuffer = context.spectrumBuffers
+                                    .advanced(by: publishedIndex * DSPCore.spectrumBinCount)
+                                let writeBuffer = context.spectrumBuffers
+                                    .advanced(by: writeIndex * DSPCore.spectrumBinCount)
+                                for bin in 0..<DSPCore.spectrumBinCount {
+                                    let q1 = context.spectrumQ1[bin]
+                                    let q2 = context.spectrumQ2[bin]
+                                    let db = SpectrumMath.magnitudeDB(
+                                        q1: q1,
+                                        q2: q2,
+                                        coefficient: context.spectrumCoefficients[bin],
+                                        windowSize: DSPCore.spectrumWindowSize)
+                                    let previous = Double(previousBuffer[bin])
+                                    writeBuffer[bin] = Float(previous + (db - previous) * 0.35)
+                                    context.spectrumQ1[bin] = 0
+                                    context.spectrumQ2[bin] = 0
+                                }
+                                _ = OSAtomicCompareAndSwap32Barrier(Int32(publishedIndex),
+                                                                   Int32(writeIndex),
+                                                                   &shared.pointee.spectrumPublishedIndex)
+                            } else {
+                                for bin in 0..<DSPCore.spectrumBinCount {
+                                    context.spectrumQ1[bin] = 0
+                                    context.spectrumQ2[bin] = 0
+                                }
+                            }
                             shared.pointee.spectrumSampleCount = 0
                         }
                     }

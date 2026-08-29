@@ -57,6 +57,7 @@
 
 /* Menu bar */
 "menubar.equalizer" = "Equalizer";
+"menubar.preset" = "Preset";
 "menubar.needsPermission" = "System Audio Permission Needed…";
 "menubar.open" = "Open Equalizer…";
 "menubar.settings" = "Settings…";

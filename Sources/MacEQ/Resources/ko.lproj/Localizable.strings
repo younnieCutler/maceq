@@ -57,6 +57,7 @@
 
 /* Menu bar */
 "menubar.equalizer" = "이퀄라이저";
+"menubar.preset" = "프리셋";
 "menubar.needsPermission" = "시스템 오디오 권한 필요…";
 "menubar.open" = "이퀄라이저 열기…";
 "menubar.settings" = "설정…";

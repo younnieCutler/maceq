@@ -14,14 +14,7 @@ struct MacEQApp: App {
         .defaultSize(width: 900, height: 620)
         .windowResizability(.contentSize)
         .commands {
-            CommandGroup(replacing: .undoRedo) {
-                Button("실행 취소") { delegate.state.undo() }
-                    .keyboardShortcut("z", modifiers: .command)
-                    .disabled(!delegate.state.canUndo)
-                Button("다시 실행") { delegate.state.redo() }
-                    .keyboardShortcut("z", modifiers: [.command, .shift])
-                    .disabled(!delegate.state.canRedo)
-            }
+            CommandGroup(replacing: .undoRedo) {}
             CommandGroup(replacing: .newItem) {}
         }
 

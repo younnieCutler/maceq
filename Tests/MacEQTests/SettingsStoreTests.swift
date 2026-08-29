@@ -39,6 +39,7 @@ final class SettingsStoreTests: XCTestCase {
         await MainActor.run {
             let store = SettingsStore(url: url)
             let state = AppState(store: store)
+            state.showTwentyBands = true
             state.select(preset: selected)
             XCTAssertEqual(state.selectedPresetID, selected.id)
             XCTAssertEqual(state.live, selected.settings)
@@ -93,6 +94,31 @@ final class SettingsStoreTests: XCTestCase {
             state.resetBands()
             XCTAssertEqual(state.live, EQPreset.flatPreset.settings)
             XCTAssertEqual(state.selectedPresetID, EQPreset.flatPreset.id)
+        }
+    }
+
+    func testDeletingPresetNormalizesDeviceSelectionWithoutDroppingLiveSound() async {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        await MainActor.run {
+            let live = EQSettings(bandGainsDB: [2] + [Double](repeating: 0, count: 19),
+                                  preampDB: -2,
+                                  autoHeadroom: false)
+            let userPreset = EQPreset(name: "AirPods", settings: live)
+            let store = SettingsStore(url: url)
+            store.update {
+                $0.userPresets = [userPreset]
+                $0.deviceStates = ["device-a": DeviceEQState(live: live,
+                                                               selectedPresetID: userPreset.id,
+                                                               showTwentyBands: true)]
+            }
+            let state = AppState(store: store)
+            state.delete(userPreset)
+            store.flush()
+
+            let deviceState = store.settings.deviceStates?["device-a"]
+            XCTAssertEqual(deviceState?.live, live)
+            XCTAssertEqual(deviceState?.selectedPresetID, EQPreset.flatPreset.id)
         }
     }
 

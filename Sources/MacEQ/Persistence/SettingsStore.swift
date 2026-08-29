@@ -138,7 +138,13 @@ enum Migration {
         }
         result.devicePresets = result.devicePresets.filter { known.contains($0.value) }
         if let deviceStates = result.deviceStates {
-            result.deviceStates = deviceStates.filter { known.contains($0.value.selectedPresetID) }
+            result.deviceStates = deviceStates.reduce(into: [:]) { states, entry in
+                var deviceState = entry.value
+                if !known.contains(deviceState.selectedPresetID) {
+                    deviceState.selectedPresetID = EQPreset.flatPreset.id
+                }
+                states[entry.key] = deviceState
+            }
         }
         return result
     }

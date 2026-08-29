@@ -20,6 +20,11 @@ final class AppState: ObservableObject {
     @Published var limiterEnabled: Bool { didSet { applyLimiter() } }
     @Published var showTwentyBands: Bool {
         didSet {
+            if oldValue != showTwentyBands, !showTwentyBands, !restoringForDevice {
+                var settings = live
+                settings.bandGainsDB = EQBands.collapseToTen(settings.bandGainsDB)
+                commit(settings)
+            }
             persist { $0.showTwentyBands = self.showTwentyBands }
             rememberCurrentDeviceState()
         }
@@ -38,8 +43,6 @@ final class AppState: ObservableObject {
     let updates = UpdateManager()
 
     private let store: SettingsStore
-    private var undoStack: [EQSettings] = []
-    private var redoStack: [EQSettings] = []
     private var restoringForDevice = false
     private var lastSeenDeviceUID = ""
 
@@ -50,11 +53,12 @@ final class AppState: ObservableObject {
     /// True once the live curve has drifted from the preset it came from.
     var isModified: Bool {
         guard let preset = selectedPreset else { return true }
-        return preset.settings != live
+        var baseline = preset.settings
+        if !showTwentyBands {
+            baseline.bandGainsDB = EQBands.collapseToTen(baseline.bandGainsDB)
+        }
+        return baseline != live
     }
-
-    var canUndo: Bool { !undoStack.isEmpty }
-    var canRedo: Bool { !redoStack.isEmpty }
 
     init(store: SettingsStore = SettingsStore()) {
         self.store = store
@@ -71,6 +75,15 @@ final class AppState: ObservableObject {
         spectrumEnabled = settings.spectrumEnabled ?? true
         appearance = AppearanceMode(rawValue: settings.appearance ?? "") ?? .system
         preferredDeviceUID = settings.preferredDeviceUID
+
+        if !showTwentyBands {
+            let normalizedGains = EQBands.collapseToTen(live.bandGainsDB)
+            if normalizedGains != live.bandGainsDB {
+                live.bandGainsDB = normalizedGains
+                let normalizedLive = live
+                store.update { $0.live = normalizedLive }
+            }
+        }
 
         session.onStatusChange = { [weak self] status in
             Task { @MainActor in self?.handle(status: status) }
@@ -96,31 +109,28 @@ final class AppState: ObservableObject {
 
     // MARK: - Equalizer
 
-    /// `beginGesture` is what makes undo useful: one drag is one undo step,
-    /// not one per frame.
-    func beginGesture() {
-        undoStack.append(live)
-        if undoStack.count > 50 { undoStack.removeFirst() }
-        redoStack.removeAll()
-    }
-
-    func setBandGain(_ index: Int, dB: Double, isGesture: Bool = false) {
+    func setBandGain(_ index: Int, dB: Double) {
         guard index >= 0, index < EQBands.count else { return }
-        if !isGesture { beginGesture() }
         var settings = live
-        settings.bandGainsDB[index] = EQBands.clamp(dB)
+        if showTwentyBands {
+            settings.bandGainsDB[index] = EQBands.clamp(dB)
+        } else if let visibleIndex = EQBands.tenBandIndices.firstIndex(of: index) {
+            var visibleGains = EQBands.tenBandIndices.map { settings.bandGainsDB[$0] }
+            visibleGains[visibleIndex] = EQBands.clamp(dB)
+            settings.bandGainsDB = EQBands.expandedFromTen(visibleGains)
+        } else {
+            return
+        }
         commit(settings)
     }
 
     func setPreampDB(_ value: Double) {
-        beginGesture()
         var settings = live
         settings.preampDB = min(max(value, -24), 12)
         commit(settings)
     }
 
     func setAutoHeadroom(_ value: Bool) {
-        beginGesture()
         var settings = live
         settings.autoHeadroom = value
         commit(settings)
@@ -131,23 +141,14 @@ final class AppState: ObservableObject {
     }
 
     func select(preset: EQPreset) {
-        beginGesture()
         selectedPresetID = preset.id
-        commit(preset.settings)
+        var settings = preset.settings
+        if !showTwentyBands {
+            settings.bandGainsDB = EQBands.collapseToTen(settings.bandGainsDB)
+        }
+        commit(settings)
         persist { $0.selectedPresetID = preset.id }
         rememberPresetForCurrentDevice()
-    }
-
-    func undo() {
-        guard let previous = undoStack.popLast() else { return }
-        redoStack.append(live)
-        commit(previous)
-    }
-
-    func redo() {
-        guard let next = redoStack.popLast() else { return }
-        undoStack.append(live)
-        commit(next)
     }
 
     private func commit(_ settings: EQSettings) {
@@ -188,6 +189,7 @@ final class AppState: ObservableObject {
     func delete(_ preset: EQPreset) {
         guard !preset.isBuiltIn else { return }
         presets.delete(id: preset.id)
+        normalizeDeviceSelections(for: [preset.id])
         if selectedPresetID == preset.id {
             select(preset: EQPreset.defaultPreset)
         }
@@ -206,7 +208,9 @@ final class AppState: ObservableObject {
     }
 
     func resetPresets() {
+        let deletedPresetIDs = Set(presets.userPresets.map(\.id))
         presets.removeAllUserPresets()
+        normalizeDeviceSelections(for: deletedPresetIDs)
         select(preset: EQPreset.defaultPreset)
         persistPresets()
     }
@@ -242,6 +246,20 @@ final class AppState: ObservableObject {
         }
     }
 
+    private func normalizeDeviceSelections(for deletedPresetIDs: Set<UUID>) {
+        guard var states = store.settings.deviceStates else { return }
+        var changed = false
+        for (uid, value) in states where deletedPresetIDs.contains(value.selectedPresetID) {
+            var deviceState = value
+            deviceState.selectedPresetID = EQPreset.flatPreset.id
+            states[uid] = deviceState
+            changed = true
+        }
+        if changed {
+            persist { $0.deviceStates = states }
+        }
+    }
+
     private func rememberPresetForCurrentDevice() {
         guard !restoringForDevice, !status.deviceUID.isEmpty else { return }
         let uid = status.deviceUID
@@ -266,7 +284,11 @@ final class AppState: ObservableObject {
             restoringForDevice = true
             selectedPresetID = deviceState.selectedPresetID
             showTwentyBands = deviceState.showTwentyBands
-            commit(deviceState.live)
+            var settings = deviceState.live
+            if !deviceState.showTwentyBands {
+                settings.bandGainsDB = EQBands.collapseToTen(settings.bandGainsDB)
+            }
+            commit(settings)
             persist { $0.selectedPresetID = deviceState.selectedPresetID }
             restoringForDevice = false
             rememberCurrentDeviceState()
@@ -279,7 +301,11 @@ final class AppState: ObservableObject {
               presetID != selectedPresetID else { return }
         restoringForDevice = true
         selectedPresetID = preset.id
-        commit(preset.settings)
+        var settings = preset.settings
+        if !showTwentyBands {
+            settings.bandGainsDB = EQBands.collapseToTen(settings.bandGainsDB)
+        }
+        commit(settings)
         persist { $0.selectedPresetID = preset.id }
         restoringForDevice = false
         rememberCurrentDeviceState()
@@ -325,8 +351,6 @@ final class AppState: ObservableObject {
         spectrumEnabled = true
         appearance = .system
         preferredDeviceUID = nil
-        undoStack.removeAll()
-        redoStack.removeAll()
         session.apply(settings: live)
         session.retry()
     }

@@ -9,6 +9,48 @@ enum EQBands {
     ]
 
     static let count = frequencies.count
+    static let tenBandIndices = Array(stride(from: 0, to: count, by: 2))
+
+    /// Projects a 20-band curve onto the ten visible octave bands. Neighbours
+    /// contribute to the fit so an isolated half-octave peak is not silently
+    /// discarded when the editor is collapsed.
+    static func tenBandGains(from gains: [Double]) -> [Double] {
+        tenBandIndices.map { centerIndex in
+            var total = value(at: centerIndex, in: gains) * 2
+            var weight = 2.0
+            if centerIndex > 0 {
+                total += value(at: centerIndex - 1, in: gains)
+                weight += 1
+            }
+            if centerIndex + 1 < count {
+                total += value(at: centerIndex + 1, in: gains)
+                weight += 1
+            }
+            return clamp(total / weight)
+        }
+    }
+
+    /// Expands ten visible octave values back into the fixed 20-band DSP
+    /// array. Hidden half-octave values are interpolation, never independent
+    /// user state.
+    static func expandedFromTen(_ gains: [Double]) -> [Double] {
+        (0..<count).map { index in
+            let lower = min(index / 2, max(gains.count - 1, 0))
+            let upper = min(lower + 1, max(gains.count - 1, 0))
+            guard !gains.isEmpty else { return 0 }
+            if index.isMultiple(of: 2) { return clamp(gains[lower]) }
+            return clamp((gains[lower] + gains[upper]) / 2)
+        }
+    }
+
+    static func collapseToTen(_ gains: [Double]) -> [Double] {
+        expandedFromTen(tenBandGains(from: gains))
+    }
+
+    private static func value(at index: Int, in gains: [Double]) -> Double {
+        guard index >= 0, index < gains.count else { return 0 }
+        return clamp(gains[index])
+    }
 
     /// Half-octave spacing would call for Q ≈ 2.87, where adjacent -3 dB points
     /// just touch. Widening the sections slightly makes neighbours overlap, so

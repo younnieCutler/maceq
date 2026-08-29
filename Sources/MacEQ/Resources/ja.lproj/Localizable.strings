@@ -57,6 +57,7 @@
 
 /* Menu bar */
 "menubar.equalizer" = "イコライザー";
+"menubar.preset" = "プリセット";
 "menubar.needsPermission" = "システムオーディオの権限が必要…";
 "menubar.open" = "イコライザーを開く…";
 "menubar.settings" = "設定…";

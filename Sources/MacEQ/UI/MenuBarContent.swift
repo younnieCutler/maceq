@@ -8,25 +8,11 @@ struct MenuBarContent: View {
     var body: some View {
         Toggle(L("menubar.equalizer"), isOn: $state.eqEnabled)
 
-        if !state.status.deviceName.isEmpty {
-            Text(state.status.deviceName)
-        }
+        deviceMenu
+        presetMenu
+
         if case .needsPermission = state.status.state {
             Button(L("menubar.needsPermission")) { PermissionManager.openSystemSettings() }
-        }
-
-        Divider()
-
-        ForEach(state.presets.quickPicks) { preset in
-            Button {
-                state.select(preset: preset)
-            } label: {
-                if preset.id == state.selectedPresetID {
-                    Label(preset.name, systemImage: "checkmark")
-                } else {
-                    Text(preset.name)
-                }
-            }
         }
 
         Divider()
@@ -48,5 +34,55 @@ struct MenuBarContent: View {
             .keyboardShortcut(",", modifiers: .command)
         Button(L("menubar.quit")) { NSApp.terminate(nil) }
             .keyboardShortcut("q", modifiers: .command)
+    }
+
+    private var deviceMenu: some View {
+        Menu {
+            Button {
+                state.preferredDeviceUID = nil
+            } label: {
+                Text((state.preferredDeviceUID == nil ? "✓ " : "  ")
+                    + L("settings.audio.followSystem"))
+            }
+
+            if !state.availableOutputs.isEmpty {
+                Divider()
+                ForEach(state.availableOutputs, id: \.uid) { device in
+                    Button {
+                        state.preferredDeviceUID = device.uid
+                    } label: {
+                        Text((state.preferredDeviceUID == device.uid ? "✓ " : "  ") + device.name)
+                    }
+                }
+            }
+        } label: {
+            Text(state.status.deviceName)
+        }
+    }
+
+    private var presetMenu: some View {
+        Menu {
+            Section(L("home.presets.builtIn")) {
+                ForEach(EQPreset.builtIns) { preset in
+                    presetButton(preset)
+                }
+            }
+            if !state.presets.userPresets.isEmpty {
+                Section(L("home.presets.user")) {
+                    ForEach(state.presets.userPresets) { preset in
+                        presetButton(preset)
+                    }
+                }
+            }
+        } label: {
+            Text(L("menubar.preset") + "  " + (state.selectedPreset?.name ?? "—"))
+        }
+    }
+
+    @ViewBuilder
+    private func presetButton(_ preset: EQPreset) -> some View {
+        Button { state.select(preset: preset) } label: {
+            Text((preset.id == state.selectedPresetID ? "✓ " : "  ") + preset.name)
+        }
     }
 }
