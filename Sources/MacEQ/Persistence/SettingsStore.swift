@@ -13,11 +13,15 @@ struct AppSettings: Codable, Equatable {
     /// the user touches a band.
     var live: EQSettings = EQPreset.defaultPreset.settings
     var limiterEnabled = true
+    /// Optional keeps settings files from older builds decodable.
+    var showTwentyBands: Bool?
+    var spectrumEnabled: Bool?
 
     var launchAtLogin = false
     var showMenuBarIcon = true
     var showDockIcon = false
-    var onboardingCompleted = false
+    /// `system`, `light`, or `dark`; optional for older settings files.
+    var appearance: String?
 
     /// `nil` follows the system default output device.
     var preferredDeviceUID: String?

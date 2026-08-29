@@ -18,7 +18,9 @@ final class AppState: ObservableObject {
     @Published var showMenuBarIcon: Bool { didSet { persist { $0.showMenuBarIcon = self.showMenuBarIcon } } }
     @Published var startEQEnabled: Bool { didSet { persist { $0.startEQEnabled = self.startEQEnabled } } }
     @Published var limiterEnabled: Bool { didSet { applyLimiter() } }
-    @Published private(set) var onboardingCompleted: Bool
+    @Published var showTwentyBands: Bool { didSet { persist { $0.showTwentyBands = self.showTwentyBands } } }
+    @Published var spectrumEnabled: Bool { didSet { persist { $0.spectrumEnabled = self.spectrumEnabled } } }
+    @Published var appearance: AppearanceMode { didSet { persist { $0.appearance = self.appearance.rawValue } } }
     @Published private(set) var availableOutputs: [OutputDevice] = []
     @Published var preferredDeviceUID: String? { didSet { applyPreferredDevice() } }
 
@@ -55,7 +57,9 @@ final class AppState: ObservableObject {
         showMenuBarIcon = settings.showMenuBarIcon
         startEQEnabled = settings.startEQEnabled
         limiterEnabled = settings.limiterEnabled
-        onboardingCompleted = settings.onboardingCompleted
+        showTwentyBands = settings.showTwentyBands ?? false
+        spectrumEnabled = settings.spectrumEnabled ?? true
+        appearance = AppearanceMode(rawValue: settings.appearance ?? "") ?? .system
         preferredDeviceUID = settings.preferredDeviceUID
 
         session.onStatusChange = { [weak self] status in
@@ -261,11 +265,6 @@ final class AppState: ObservableObject {
         persist { $0.launchAtLogin = enabled }
     }
 
-    func completeOnboarding() {
-        onboardingCompleted = true
-        persist { $0.onboardingCompleted = true }
-    }
-
     /// Removes presets, device mappings and the login item, and rebuilds the
     /// audio pipeline from defaults.
     func resetEverything() {
@@ -276,8 +275,10 @@ final class AppState: ObservableObject {
         live = EQPreset.defaultPreset.settings
         eqEnabled = true
         limiterEnabled = true
+        showTwentyBands = false
+        spectrumEnabled = true
+        appearance = .system
         preferredDeviceUID = nil
-        onboardingCompleted = false
         undoStack.removeAll()
         redoStack.removeAll()
         session.apply(settings: live)

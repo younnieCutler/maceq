@@ -11,7 +11,7 @@ struct MacEQApp: App {
                 .environmentObject(delegate.state)
                 .tint(.macEQAccent)
         }
-        .defaultSize(width: 520, height: 640)
+        .defaultSize(width: 900, height: 620)
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .undoRedo) {
@@ -73,12 +73,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ProcessTap.destroyOrphans()
         TapAggregateDevice.destroyOrphans()
         state.start()
-        // LSUIElement keeps MacEQ out of the Dock, but the very first launch
-        // has to put onboarding in front of the user.
-        if !state.onboardingCompleted {
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
-        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -90,20 +84,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-/// Onboarding takes over the window until it is done, so the first launch
-/// cannot land on an empty-looking Home with no audio.
+/// The editor is the first screen; permission and recovery are handled inline
+/// so the user never has to clear an unrelated onboarding flow first.
 struct RootView: View {
     @EnvironmentObject private var state: AppState
 
     var body: some View {
-        Group {
-            if state.onboardingCompleted {
-                HomeView()
-            } else {
-                OnboardingView()
-            }
-        }
-        .frame(minWidth: 480, minHeight: 600)
+        HomeView()
+            .preferredColorScheme(state.appearance.colorScheme)
+            .frame(minWidth: 720, minHeight: 520)
         .onAppear(perform: recenterMainWindowIfNeeded)
     }
 

@@ -48,6 +48,16 @@ open MacEQ.app          # launch via `open`, not the raw binary (see Permission)
 ./scripts/dmg.sh 0.2.0           # override the version in the file name
 ```
 
+## Download and install
+
+1. [Download MacEQ.dmg](https://github.com/younnieCutler/maceq/releases/latest/download/MacEQ.dmg).
+2. Open it, then double-click **Install MacEQ.command**. It installs MacEQ in
+   `~/Applications`, adds **MacEQ.app** to the Desktop, and launches it.
+
+The installer never overwrites a non-shortcut Desktop item. To publish a new
+download, push a version tag such as `v0.1.0`; GitHub Actions builds the DMG
+and attaches it to that release.
+
 ## Permission
 
 The tap needs the **AudioCapture** TCC grant. Core Audio returns `noErr` for
@@ -72,7 +82,7 @@ GitHub-Releases distribution, not the Mac App Store. `UpdateManager` polls the
 GitHub Releases API for a newer tag rather than using Sparkle: without
 notarization an auto-installed update would be blocked by Gatekeeper anyway.
 
-First launch of a downloaded, ad-hoc-signed app needs one manual step:
+First launch of a downloaded, ad-hoc-signed app may need one manual step:
 right-click `MacEQ.app` → **Open** → confirm, since it isn't notarized.
 
 ## Project layout

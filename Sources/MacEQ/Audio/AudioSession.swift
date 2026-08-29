@@ -37,6 +37,7 @@ final class AudioSession: @unchecked Sendable {
         var peakInDB: Double = -.infinity
         var peakOutDB: Double = -.infinity
         var limiterReductionDB: Double = 0
+        var spectrumDB: [Float] = [Float](repeating: -80, count: DSPCore.spectrumBinCount)
         var lastError: String?
         var callbacksPerTick: UInt64 = 0
         var deviceActive = false
@@ -55,6 +56,7 @@ final class AudioSession: @unchecked Sendable {
     private var listeners: [(AudioObjectID, AudioObjectPropertyAddress, AudioObjectPropertyListenerBlock)] = []
 
     private var watchdog: DispatchSourceTimer?
+    private var spectrumTimer: DispatchSourceTimer?
     private var sawCallbacks = false
     private var silentTicks = 0
     private var recoveryAttempt = 0
@@ -88,6 +90,7 @@ final class AudioSession: @unchecked Sendable {
             installSleepWakeObservers()
             build(reason: "start")
             startWatchdog()
+            startSpectrumTimer()
         }
     }
 
@@ -95,6 +98,7 @@ final class AudioSession: @unchecked Sendable {
         queue.sync { [self] in
             started = false
             stopWatchdog()
+            stopSpectrumTimer()
             teardown()
             update { $0.state = .stopped }
         }
@@ -371,6 +375,22 @@ final class AudioSession: @unchecked Sendable {
     private func stopWatchdog() {
         watchdog?.cancel()
         watchdog = nil
+    }
+
+    private func startSpectrumTimer() {
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + 0.1, repeating: 0.1)
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.update { $0.spectrumDB = self.dsp.readSpectrumDB() }
+        }
+        timer.resume()
+        spectrumTimer = timer
+    }
+
+    private func stopSpectrumTimer() {
+        spectrumTimer?.cancel()
+        spectrumTimer = nil
     }
 
     /// Core Audio stops cycling the aggregate when nothing is playing, so a

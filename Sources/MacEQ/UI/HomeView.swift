@@ -2,24 +2,42 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var state: AppState
-    @State private var showBands = false
     @State private var showSavePreset = false
     @State private var newPresetName = ""
+    @State private var presetToRename: EQPreset?
+    @State private var renamedPreset = ""
+    @State private var preampText = ""
+    @FocusState private var preampFocused: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                header
-                StatusBanner()
-                deviceCard
-                soundSection
-                equalizerSection
-                preampSection
+        VStack(spacing: 0) {
+            StatusBanner()
+                .padding(.horizontal, 24)
+
+            HStack(spacing: 12) {
+                CurveEditorView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                StereoOutputMeter()
+                    .frame(width: 28)
             }
-            .padding(28)
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            equalizerFooter
+            bottomBar
         }
         .background(.background)
-        .sheet(isPresented: $showBands) { BandsView() }
+        .frame(minWidth: 720, minHeight: 520)
+        .toolbar { toolbarContent }
+        .onAppear { preampText = format(state.live.preampDB) }
+        .onChange(of: state.live.preampDB) { _, value in
+            if !preampFocused { preampText = format(value) }
+        }
+        .onChange(of: preampFocused) { _, focused in
+            if !focused { commitPreamp() }
+        }
         .alert(L("home.savePreset.title"), isPresented: $showSavePreset) {
             TextField(L("home.savePreset.field"), text: $newPresetName)
             Button(L("common.save")) {
@@ -30,175 +48,6 @@ struct HomeView: View {
             Button(L("common.cancel"), role: .cancel) { newPresetName = "" }
         } message: {
             Text(L("home.savePreset.message"))
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("MacEQ")
-                .font(.largeTitle.weight(.semibold))
-            Spacer()
-            Toggle(L("home.eq.accessibilityLabel"), isOn: $state.eqEnabled)
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .accessibilityLabel(L("home.eq.accessibilityLabel"))
-                .accessibilityValue(state.eqEnabled ? L("common.on") : L("common.off"))
-            Text(state.eqEnabled ? L("common.on") : L("common.off"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(width: 36, alignment: .leading)
-        }
-    }
-
-    private var deviceCard: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(state.status.deviceName)
-                .font(.title3.weight(.medium))
-            Text(deviceSubtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var deviceSubtitle: String {
-        guard state.status.sampleRate > 0 else { return L("home.device.waiting") }
-        let rate = String(format: "%.4g kHz", state.status.sampleRate / 1_000)
-        return L("home.device.connected", rate)
-    }
-
-    private var soundSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                sectionTitle(L("home.section.sound"))
-                Spacer()
-                if let preset = state.selectedPreset {
-                    Label(state.isModified ? L("home.modified") : L("home.sound.active", preset.name),
-                          systemImage: state.isModified ? "slider.horizontal.3" : "checkmark.circle.fill")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(state.isModified ? Color.secondary : Color.macEQAccent)
-                }
-            }
-            PresetChips()
-            if state.isModified {
-                HStack(spacing: 12) {
-                    Button(L("home.saveCurve")) { showSavePreset = true }
-                    if let preset = state.selectedPreset, !preset.isBuiltIn {
-                        Button(L("home.updatePreset", preset.name)) { state.updateSelectedPreset() }
-                    }
-                    Spacer()
-                }
-                .buttonStyle(.link)
-            }
-        }
-    }
-
-    private var equalizerSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                sectionTitle(L("home.section.equalizer"))
-                Spacer()
-                Button(L("common.reset")) { state.resetBands() }
-                    .buttonStyle(.link)
-                    .disabled(state.live.isFlat)
-            }
-            CurveEditorView()
-            HStack {
-                Text(EQBands.label(0)).font(.caption).foregroundStyle(.secondary)
-                Spacer()
-                Button(L("home.editBands")) { showBands = true }
-                Spacer()
-                Text(EQBands.label(EQBands.count - 1)).font(.caption).foregroundStyle(.secondary)
-            }
-            if state.live.autoHeadroom {
-                let peak = max(state.status.requiredHeadroomDB - Headroom.safetyMarginDB, 0)
-                Text(L("home.headroom.summary", peak, Headroom.safetyMarginDB, state.status.effectivePreampDB))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var preampSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle(L("home.section.preamp"))
-            HStack {
-                Text(state.live.autoHeadroom ? L("home.preamp.auto") : L("home.preamp.manual"))
-                    .foregroundStyle(.secondary)
-                Slider(value: Binding(get: { state.live.preampDB },
-                                      set: { state.setPreampDB($0) }),
-                       in: -24...12, step: 0.5)
-                    .accessibilityLabel(L("home.section.preamp"))
-                    .accessibilityValue(EQBands.spokenGain(state.live.preampDB))
-                Text(String(format: "%+.1f dB", state.status.effectivePreampDB))
-                    .font(.body.monospacedDigit())
-                    .frame(width: 72, alignment: .trailing)
-            }
-
-            Toggle(isOn: Binding(get: { state.live.autoHeadroom },
-                                 set: { state.setAutoHeadroom($0) })) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L("home.autoHeadroom.title"))
-                    Text(state.live.autoHeadroom
-                         ? L("home.autoHeadroom.on", state.status.requiredHeadroomDB)
-                         : L("home.autoHeadroom.off"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .toggleStyle(.switch)
-        }
-    }
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.headline)
-            .foregroundStyle(.secondary)
-    }
-}
-
-struct PresetChips: View {
-    @EnvironmentObject private var state: AppState
-    @State private var presetToRename: EQPreset?
-    @State private var renamedPreset = ""
-
-    private let columns = [GridItem(.adaptive(minimum: 112), spacing: 8)]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-                ForEach(EQPreset.builtIns) { preset in
-                    presetButton(preset, isUserPreset: false)
-                }
-            }
-
-            if !state.presets.userPresets.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(L("home.userPresets"))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-                        ForEach(state.presets.userPresets) { preset in
-                            HStack(spacing: 4) {
-                                presetButton(preset, isUserPreset: true)
-                                Menu {
-                                    Button(L("common.duplicate")) { state.duplicate(preset) }
-                                    Button(L("home.renamePreset")) {
-                                        presetToRename = preset
-                                        renamedPreset = preset.name
-                                    }
-                                    Button(L("common.delete"), role: .destructive) { state.delete(preset) }
-                                } label: {
-                                    Image(systemName: "ellipsis.circle")
-                                        .frame(width: 28, height: 44)
-                                }
-                                .menuStyle(.borderlessButton)
-                                .accessibilityLabel(L("home.userPreset.actions", preset.name))
-                            }
-                        }
-                    }
-                }
-            }
         }
         .alert(L("home.renamePreset.title"), isPresented: Binding(
             get: { presetToRename != nil },
@@ -215,38 +64,222 @@ struct PresetChips: View {
         }
     }
 
-    private func presetButton(_ preset: EQPreset, isUserPreset: Bool) -> some View {
-        let selected = preset.id == state.selectedPresetID
-        return Button { state.select(preset: preset) } label: {
-            HStack(spacing: 6) {
-                Image(systemName: selected ? "checkmark.circle.fill" : (isUserPreset ? "person.crop.circle" : "waveform"))
-                    .imageScale(.small)
-                Text(preset.name).lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .font(.callout.weight(selected ? .semibold : .regular))
-            .foregroundStyle(selected ? Color.macEQAccent : Color.primary)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background {
-                if selected {
-                    RoundedRectangle(cornerRadius: 10).fill(Color.macEQAccent.opacity(0.16))
-                } else {
-                    RoundedRectangle(cornerRadius: 10).fill(.quaternary.opacity(0.35))
-                }
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(selected ? Color.macEQAccent.opacity(0.45) : .clear)
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            HStack(spacing: 16) {
+                deviceMenu
+                Divider().frame(height: 16)
+                presetMenu
             }
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
+
+        ToolbarItem(placement: .primaryAction) {
+            HStack(spacing: 8) {
+                Text("EQ")
+                    .font(.callout.weight(.medium))
+                Toggle("", isOn: $state.eqEnabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
+            }
+            .accessibilityLabel(L("home.eq.accessibilityLabel"))
+            .accessibilityValue(state.eqEnabled ? L("common.on") : L("common.off"))
+        }
+    }
+
+    private var deviceMenu: some View {
+        Menu {
+            deviceChoice(L("settings.audio.followSystem"), selected: state.preferredDeviceUID == nil) {
+                state.preferredDeviceUID = nil
+            }
+
+            if !state.availableOutputs.isEmpty {
+                Divider()
+                ForEach(state.availableOutputs, id: \.uid) { device in
+                    deviceChoice(device.name, selected: state.preferredDeviceUID == device.uid) {
+                        state.preferredDeviceUID = device.uid
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(state.status.deviceName)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.caption2)
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .accessibilityLabel(L("settings.audio.outputDevice"))
+        .accessibilityValue(state.status.deviceName)
+    }
+
+    @ViewBuilder
+    private func deviceChoice(_ name: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            if selected {
+                Label(name, systemImage: "checkmark")
+            } else {
+                Text(name)
+            }
+        }
+    }
+
+    private var presetMenu: some View {
+        Menu {
+            Section(L("home.presets.builtIn")) {
+                ForEach(EQPreset.builtIns) { preset in
+                    presetChoice(preset)
+                }
+            }
+
+            if !state.presets.userPresets.isEmpty {
+                Section(L("home.presets.user")) {
+                    ForEach(state.presets.userPresets) { preset in
+                        Menu {
+                            presetChoice(preset)
+                            Divider()
+                            Button(L("home.renamePreset")) {
+                                presetToRename = preset
+                                renamedPreset = preset.name
+                            }
+                            Button(L("common.duplicate")) { state.duplicate(preset) }
+                            Button(L("common.delete"), role: .destructive) { state.delete(preset) }
+                        } label: {
+                            menuSelectionLabel(preset.name, selected: preset.id == state.selectedPresetID)
+                        }
+                    }
+                }
+            }
+
+            if state.isModified {
+                Divider()
+                Button(L("home.saveCurve")) { showSavePreset = true }
+                if let preset = state.selectedPreset, !preset.isBuiltIn {
+                    Button(L("home.updatePreset", preset.name)) { state.updateSelectedPreset() }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(state.selectedPreset?.name ?? "—")
+                    .lineLimit(1)
+                if state.isModified {
+                    Text("•")
+                        .foregroundStyle(.secondary)
+                }
+                Image(systemName: "chevron.down")
+                    .font(.caption2)
+            }
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .accessibilityLabel(L("home.section.sound"))
+        .accessibilityValue(state.selectedPreset?.name ?? "—")
+    }
+
+    @ViewBuilder
+    private func presetChoice(_ preset: EQPreset) -> some View {
+        Button { state.select(preset: preset) } label: {
+            menuSelectionLabel(preset.name, selected: preset.id == state.selectedPresetID)
+        }
+    }
+
+    @ViewBuilder
+    private func menuSelectionLabel(_ name: String, selected: Bool) -> some View {
+        if selected {
+            Label(name, systemImage: "checkmark")
+        } else {
+            Text(name)
+        }
+    }
+
+    private var equalizerFooter: some View {
+        HStack(spacing: 16) {
+            Text(L("home.eq.scale"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Toggle(L("home.bandMode.twenty"), isOn: $state.showTwentyBands)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+
+            Button(L("common.reset")) { state.resetBands() }
+                .buttonStyle(.link)
+                .disabled(state.live.isFlat)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 10)
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 16) {
+            preampControl
+
+            Spacer(minLength: 24)
+
+            Toggle(L("home.autoGain.title"), isOn: Binding(
+                get: { state.live.autoHeadroom },
+                set: { state.setAutoHeadroom($0) }
+            ))
+            .toggleStyle(.switch)
+            .controlSize(.small)
+
+            Toggle(L("home.limiter.title"), isOn: $state.limiterEnabled)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+        }
+        .padding(.horizontal, 24)
+        .frame(height: 56)
+        .overlay(alignment: .top) { Divider() }
+    }
+
+    private var preampControl: some View {
+        HStack(spacing: 8) {
+            Text(L("home.preamp.label"))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+
+            TextField(L("home.preamp.field"), text: $preampText)
+                .textFieldStyle(.plain)
+                .font(.body.monospacedDigit())
+                .multilineTextAlignment(.trailing)
+                .frame(width: 58)
+                .focused($preampFocused)
+                .onSubmit {
+                    commitPreamp()
+                    preampFocused = false
+                }
+
+            Text("dB")
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L("home.preamp.label"))
+        .accessibilityValue(EQBands.spokenGain(state.live.preampDB))
+    }
+
+    private func commitPreamp() {
+        let normalized = preampText.replacingOccurrences(of: ",", with: ".")
+        guard let value = Double(normalized) else {
+            preampText = format(state.live.preampDB)
+            return
+        }
+        state.setPreampDB(value)
+        preampText = format(min(max(value, -24), 12))
+    }
+
+    private func format(_ value: Double) -> String {
+        String(format: "%+.1f", value)
     }
 }
 
-/// One place for everything that needs the user to act: no permission, a
-/// failed pipeline, or a blocked login item.
+/// One compact status row for failures that need user action. It deliberately
+/// does not compete with the EQ surface as a card or modal.
 struct StatusBanner: View {
     @EnvironmentObject private var state: AppState
 
@@ -279,24 +312,73 @@ struct StatusBanner: View {
     @ViewBuilder
     private func banner(icon: String, title: String, message: String,
                         actionTitle: String?, action: (() -> Void)?) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: icon)
-                .font(.title3)
                 .foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.callout.weight(.medium))
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer()
+            Text(title)
+                .font(.callout.weight(.medium))
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 8)
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
+                    .controlSize(.small)
             }
         }
-        .padding(16)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .combine)
+        .padding(.vertical, 8)
+        .overlay(alignment: .bottom) { Divider() }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+struct StereoOutputMeter: View {
+    @EnvironmentObject private var state: AppState
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text("L")
+            meter
+            Text("R")
+        }
+        .font(.caption2.monospaced())
+        .foregroundStyle(.secondary)
+        .frame(maxHeight: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L("home.outputMeter"))
+        .accessibilityValue(levelDescription)
+    }
+
+    private var meter: some View {
+        GeometryReader { geometry in
+            let height = max(geometry.size.height, 1)
+            let levelHeight = height * normalizedLevel
+            ZStack(alignment: .bottom) {
+                Rectangle()
+                    .fill(.secondary.opacity(0.18))
+                    .frame(width: 2)
+                Rectangle()
+                    .fill(isClipping ? Color.red : Color.primary.opacity(0.6))
+                    .frame(width: 3, height: max(levelHeight, normalizedLevel > 0 ? 1 : 0))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(width: 12)
+    }
+
+    private var normalizedLevel: CGFloat {
+        guard state.status.peakOutDB.isFinite else { return 0 }
+        return CGFloat(min(max((state.status.peakOutDB + 60) / 60, 0), 1))
+    }
+
+    private var isClipping: Bool {
+        state.status.peakOutDB.isFinite && state.status.peakOutDB >= -0.1
+    }
+
+    private var levelDescription: String {
+        state.status.peakOutDB.isFinite
+            ? String(format: "%.1f dBFS", state.status.peakOutDB)
+            : L("diagnostics.silent")
     }
 }

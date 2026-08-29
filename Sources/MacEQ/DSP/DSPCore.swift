@@ -12,6 +12,8 @@ import os
 final class DSPCore: @unchecked Sendable {
 
     static let maxChannels = 8
+    static let spectrumBinCount = EQBands.count
+    private static let spectrumWindowSize = 1_024
 
     fileprivate struct Shared {
         var lock = os_unfair_lock()
@@ -39,6 +41,8 @@ final class DSPCore: @unchecked Sendable {
         var frames: UInt64 = 0
         var callbacks: UInt64 = 0
         var limitDB: Double = 0
+        // IO-thread only. The control thread reads the completed smoothed bins.
+        var spectrumSampleCount = 0
     }
 
     struct Meters {
@@ -56,6 +60,10 @@ final class DSPCore: @unchecked Sendable {
     private let coefficients: UnsafeMutablePointer<BiquadCoefficients>
     private let states: UnsafeMutablePointer<BiquadState>
     private let scratch: UnsafeMutablePointer<Double>
+    private let spectrumDB: UnsafeMutablePointer<Float>
+    private let spectrumQ1: UnsafeMutablePointer<Double>
+    private let spectrumQ2: UnsafeMutablePointer<Double>
+    private let spectrumCoefficients: UnsafeMutablePointer<Double>
 
     private(set) var sampleRate: Double = 48_000
     private(set) var channels: Int = 2
@@ -76,6 +84,14 @@ final class DSPCore: @unchecked Sendable {
                           count: EQBands.count * DSPCore.maxChannels)
         scratch = .allocate(capacity: DSPCore.maxChannels)
         scratch.initialize(repeating: 0, count: DSPCore.maxChannels)
+        spectrumDB = .allocate(capacity: DSPCore.spectrumBinCount)
+        spectrumDB.initialize(repeating: -80, count: DSPCore.spectrumBinCount)
+        spectrumQ1 = .allocate(capacity: DSPCore.spectrumBinCount)
+        spectrumQ1.initialize(repeating: 0, count: DSPCore.spectrumBinCount)
+        spectrumQ2 = .allocate(capacity: DSPCore.spectrumBinCount)
+        spectrumQ2.initialize(repeating: 0, count: DSPCore.spectrumBinCount)
+        spectrumCoefficients = .allocate(capacity: DSPCore.spectrumBinCount)
+        spectrumCoefficients.initialize(repeating: 0, count: DSPCore.spectrumBinCount)
     }
 
     deinit {
@@ -86,6 +102,10 @@ final class DSPCore: @unchecked Sendable {
         coefficients.deinitialize(count: EQBands.count); coefficients.deallocate()
         states.deinitialize(count: EQBands.count * DSPCore.maxChannels); states.deallocate()
         scratch.deinitialize(count: DSPCore.maxChannels); scratch.deallocate()
+        spectrumDB.deinitialize(count: DSPCore.spectrumBinCount); spectrumDB.deallocate()
+        spectrumQ1.deinitialize(count: DSPCore.spectrumBinCount); spectrumQ1.deallocate()
+        spectrumQ2.deinitialize(count: DSPCore.spectrumBinCount); spectrumQ2.deallocate()
+        spectrumCoefficients.deinitialize(count: DSPCore.spectrumBinCount); spectrumCoefficients.deallocate()
     }
 
     // MARK: - Configuration (control thread)
@@ -102,6 +122,7 @@ final class DSPCore: @unchecked Sendable {
         // Preamp and the wet/dry crossfade move per sample over ~20 ms.
         shared.pointee.gainSmoothing = 1 - exp(-1 / (0.020 * self.sampleRate))
         shared.pointee.limiter.prepare(sampleRate: self.sampleRate)
+        shared.pointee.spectrumSampleCount = 0
         shared.pointee.generation &+= 1
         os_unfair_lock_unlock(&shared.pointee.lock)
 
@@ -116,6 +137,11 @@ final class DSPCore: @unchecked Sendable {
                                                      sampleRate: self.sampleRate,
                                                      q: EQBands.q,
                                                      gainDB: currentGainDB[index])
+            let frequency = min(EQBands.frequencies[index], self.sampleRate * 0.45)
+            spectrumCoefficients[index] = 2 * cos(2 * Double.pi * frequency / self.sampleRate)
+            spectrumQ1[index] = 0
+            spectrumQ2[index] = 0
+            spectrumDB[index] = -80
         }
         shared.pointee.appliedGeneration = shared.pointee.generation
         shared.pointee.preampGain = pow(10, shared.pointee.preampDB / 20)
@@ -171,6 +197,12 @@ final class DSPCore: @unchecked Sendable {
         return meters
     }
 
+    /// Copies the smoothed spectrum on the control side; the render thread
+    /// never allocates or takes a lock for metering.
+    func readSpectrumDB() -> [Float] {
+        Array(UnsafeBufferPointer(start: spectrumDB, count: DSPCore.spectrumBinCount))
+    }
+
     // MARK: - Render context handed to the IO block
 
     /// Trivial value, so the render block captures no managed references.
@@ -182,6 +214,10 @@ final class DSPCore: @unchecked Sendable {
         let coefficients: UnsafeMutablePointer<BiquadCoefficients>
         let states: UnsafeMutablePointer<BiquadState>
         let scratch: UnsafeMutablePointer<Double>
+        let spectrumDB: UnsafeMutablePointer<Float>
+        let spectrumQ1: UnsafeMutablePointer<Double>
+        let spectrumQ2: UnsafeMutablePointer<Double>
+        let spectrumCoefficients: UnsafeMutablePointer<Double>
         let sampleRate: Double
         let channels: Int
     }
@@ -194,6 +230,10 @@ final class DSPCore: @unchecked Sendable {
                       coefficients: coefficients,
                       states: states,
                       scratch: scratch,
+                      spectrumDB: spectrumDB,
+                      spectrumQ1: spectrumQ1,
+                      spectrumQ2: spectrumQ2,
+                      spectrumCoefficients: spectrumCoefficients,
                       sampleRate: sampleRate,
                       channels: channels)
     }
@@ -292,6 +332,32 @@ final class DSPCore: @unchecked Sendable {
                     let dry = Double(source[frame * inChannels + channel])
                     let magnitudeIn = Float(abs(dry))
                     if magnitudeIn > peakIn { peakIn = magnitudeIn }
+
+                    if bufferIndex == 0 && channel == 0 {
+                        for bin in 0..<DSPCore.spectrumBinCount {
+                            let q0 = context.spectrumCoefficients[bin] * context.spectrumQ1[bin]
+                                - context.spectrumQ2[bin] + dry
+                            context.spectrumQ2[bin] = context.spectrumQ1[bin]
+                            context.spectrumQ1[bin] = q0
+                        }
+                        shared.pointee.spectrumSampleCount += 1
+                        if shared.pointee.spectrumSampleCount == DSPCore.spectrumWindowSize {
+                            for bin in 0..<DSPCore.spectrumBinCount {
+                                let q1 = context.spectrumQ1[bin]
+                                let q2 = context.spectrumQ2[bin]
+                                let power = max(q1 * q1 + q2 * q2
+                                    - context.spectrumCoefficients[bin] * q1 * q2, 0)
+                                let amplitude = max(power.squareRoot()
+                                    / Double(DSPCore.spectrumWindowSize) * 2, 1e-5)
+                                let db = min(max(20 * log10(amplitude), -80), 0)
+                                let previous = Double(context.spectrumDB[bin])
+                                context.spectrumDB[bin] = Float(previous + (db - previous) * 0.35)
+                                context.spectrumQ1[bin] = 0
+                                context.spectrumQ2[bin] = 0
+                            }
+                            shared.pointee.spectrumSampleCount = 0
+                        }
+                    }
 
                     var value = dry * preampGain
                     let channelBase = (stateBase + channel) * EQBands.count

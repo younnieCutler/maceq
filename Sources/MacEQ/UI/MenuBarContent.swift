@@ -31,6 +31,15 @@ struct MenuBarContent: View {
 
         Divider()
 
+        Text(L("home.preamp.label") + "  " + String(format: "%+.1f dB", state.live.preampDB))
+        Toggle(L("home.autoGain.title"), isOn: Binding(
+            get: { state.live.autoHeadroom },
+            set: { state.setAutoHeadroom($0) }
+        ))
+        Toggle(L("home.limiter.title"), isOn: $state.limiterEnabled)
+
+        Divider()
+
         Button(L("menubar.open")) {
             NSApp.activate(ignoringOtherApps: true)
             openWindow(id: WindowID.main)

@@ -1,0 +1,23 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+      - name: Build and publish DMG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          MACEQ_IDENTITY=- ./scripts/dmg.sh "$VERSION"
+          mv "MacEQ-$VERSION.dmg" MacEQ.dmg
+          gh release create "$GITHUB_REF_NAME" MacEQ.dmg --generate-notes

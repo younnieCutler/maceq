@@ -26,17 +26,22 @@
 "home.modified" = "수정됨";
 "home.sound.active" = "%@ 적용 중";
 "home.userPresets" = "내 프리셋";
+"home.presets.builtIn" = "기본 프리셋";
+"home.presets.user" = "내 프리셋";
 "home.userPreset.actions" = "%@ 관리";
 "home.renamePreset" = "이름 변경";
 "home.renamePreset.title" = "프리셋 이름 변경";
 "home.renamePreset.field" = "이름";
 "home.renamePreset.message" = "이 프리셋의 이름을 변경합니다.";
 "home.section.equalizer" = "이퀄라이저";
-"home.editBands" = "20밴드 편집";
+"home.eq.scale" = "게인 · dB";
+"home.bandMode.twenty" = "20밴드";
 "home.headroom.summary" = "곡선 피크 +%.1f dB · 여유 %.1f dB · 자동 프리앰프 %+.1f dB";
-"home.section.preamp" = "프리앰프";
-"home.preamp.auto" = "자동";
-"home.preamp.manual" = "수동";
+"home.preamp.label" = "프리앰프";
+"home.preamp.field" = "프리앰프 데시벨";
+"home.autoGain.title" = "자동 게인";
+"home.limiter.title" = "리미터";
+"home.outputMeter" = "스테레오 출력 레벨";
 "home.autoHeadroom.title" = "자동 헤드룸";
 "home.autoHeadroom.on" = "클리핑을 자동으로 방지합니다. 현재 %.1f dB 확보 중.";
 "home.autoHeadroom.off" = "부스트가 클수록 소리가 깨질 수 있습니다.";
@@ -50,11 +55,6 @@
 "status.recovering.title" = "오디오를 다시 연결하는 중";
 "status.recovering.message" = "%d번째 시도";
 
-/* Bands sheet */
-"bands.title" = "20밴드 이퀄라이저";
-"bands.resetAll" = "전체 0 dB";
-"bands.hint" = "드래그로 조절, 값을 두 번 클릭하면 0 dB로 돌아갑니다. ⌘Z 실행 취소.";
-
 /* Menu bar */
 "menubar.equalizer" = "이퀄라이저";
 "menubar.needsPermission" = "시스템 오디오 권한 필요…";
@@ -62,21 +62,17 @@
 "menubar.settings" = "설정…";
 "menubar.quit" = "MacEQ 종료";
 
-/* Onboarding */
-"onboarding.welcome.title" = "Mac의 소리를\n원하는 대로.";
-"onboarding.welcome.subtitle" = "20밴드 이퀄라이저를 모든 소리에 적용합니다.";
-"onboarding.permission.title" = "시스템 오디오 접근";
-"onboarding.permission.body" = "MacEQ는 소리를 처리할 뿐 녹음하거나 업로드하지 않습니다.\n오디오는 이 Mac을 벗어나지 않습니다.";
-"onboarding.pick.title" = "준비됐습니다.";
-"onboarding.pick.subtitle" = "먼저 들어볼 소리를 골라주세요.";
-"onboarding.start" = "시작하기";
-
 /* Settings */
 "settings.tab.general" = "일반";
 "settings.tab.audio" = "오디오";
 "settings.tab.equalizer" = "이퀄라이저";
 "settings.tab.advanced" = "고급";
 "settings.tab.about" = "정보";
+"settings.section.appearance" = "화면";
+"settings.appearance.label" = "화면 모드";
+"appearance.system" = "시스템";
+"appearance.light" = "라이트";
+"appearance.dark" = "다크";
 
 "settings.general.launchAtLogin" = "로그인 시 MacEQ 실행";
 "settings.general.loginBlocked" = "MacEQ가 로그인 시 자동으로 시작할 수 없습니다.";
@@ -91,6 +87,7 @@
 "settings.audio.refreshDevices" = "장치 목록 새로 고침";
 "settings.audio.autoHeadroom" = "자동 헤드룸";
 "settings.audio.safetyLimiter" = "세이프티 리미터";
+"settings.audio.spectrumAnalyzer" = "스펙트럼 분석기";
 "settings.audio.engine" = "엔진";
 "settings.audio.engine.stopped" = "정지됨";
 "settings.audio.engine.running" = "%d Hz · %d채널 · %d 프레임";
@@ -150,7 +147,8 @@
 
 /* Curve editor accessibility */
 "curve.a11y.label" = "이퀄라이저 곡선";
-"curve.a11y.hint" = "자세히 조절하려면 20밴드 편집을 사용하세요";
+"curve.a11y.hint" = "더 정밀하게 조절하려면 20밴드 모드로 전환하세요";
+"curve.a11y.dragHint" = "세로로 드래그하여 게인을 조절하세요";
 "curve.a11y.allZero" = "모든 밴드 0데시벨";
 
 /* Band accessibility (VoiceOver reads units in full) */

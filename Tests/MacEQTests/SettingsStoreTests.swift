@@ -48,6 +48,25 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(SettingsStore(url: url).settings.selectedPresetID, selected.id)
     }
 
+    func testEditorPreferencesPersist() async {
+        let url = tempURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        await MainActor.run {
+            let store = SettingsStore(url: url)
+            let state = AppState(store: store)
+            state.showTwentyBands = true
+            state.spectrumEnabled = false
+            state.appearance = .dark
+            store.flush()
+        }
+
+        let settings = SettingsStore(url: url).settings
+        XCTAssertEqual(settings.showTwentyBands, true)
+        XCTAssertEqual(settings.spectrumEnabled, false)
+        XCTAssertEqual(settings.appearance, AppearanceMode.dark.rawValue)
+    }
+
     /// A corrupt settings file must not crash the app, and must not be
     /// silently deleted — it is the only evidence of what went wrong.
     func testCorruptFileFallsBackAndIsPreservedAsBackup() throws {
