@@ -116,4 +116,14 @@ final class EQSettingsTests: XCTestCase {
         let decoded = try JSONDecoder().decode(EQSettings.self, from: data)
         XCTAssertEqual(decoded, EQSettings.flat)
     }
+
+    func testIsFlatRequiresNeutralPreampAndAutoGain() {
+        var preamped = EQSettings.flat
+        preamped.preampDB = -2
+        XCTAssertFalse(preamped.isFlat)
+
+        var manualGain = EQSettings.flat
+        manualGain.autoHeadroom = false
+        XCTAssertFalse(manualGain.isFlat)
+    }
 }

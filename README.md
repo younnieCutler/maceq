@@ -11,7 +11,7 @@ System Audio → Core Audio Tap → 20-band EQ → Safety Limiter → Physical O
 
 MVP. Gates A–D from `plan/gate-a.md` are complete: audio pipeline, 20-band
 engine with Auto Headroom and a safety limiter, device hot-swap and recovery,
-a SwiftUI Home/Curve Editor/Presets/Settings/Menu Bar UI, and 30 automated
+a SwiftUI Home/Curve Editor/Presets/Settings/Menu Bar UI, and 53 automated
 tests. Gate E (this document) covers packaging and distribution.
 
 ## How it works
@@ -35,7 +35,7 @@ buffer, no drift, no resampling. Full detail and measurements in
 ## Build and run
 
 ```sh
-swift test            # 30 tests, DSP + persistence + presets
+swift test            # 53 tests, DSP + persistence + presets
 make bundle            # debug build → MacEQ.app, ad-hoc signed
 CONFIG=release make bundle
 open MacEQ.app          # launch via `open`, not the raw binary (see Permission)
@@ -47,6 +47,16 @@ open MacEQ.app          # launch via `open`, not the raw binary (see Permission)
 ./scripts/dmg.sh                # MacEQ-<version>.dmg from a release build
 ./scripts/dmg.sh 0.2.0           # override the version in the file name
 ```
+
+## Download and install
+
+1. [Download MacEQ.dmg](https://github.com/younnieCutler/maceq/releases/latest/download/MacEQ.dmg).
+2. Open it, then double-click **Install MacEQ.command**. It installs MacEQ in
+   `~/Applications`, adds **MacEQ.app** to the Desktop, and launches it.
+
+The installer never overwrites a non-shortcut Desktop item. To publish a new
+download, push a version tag such as `v0.1.0`; GitHub Actions builds the DMG
+and attaches it to that release.
 
 ## Permission
 
@@ -72,7 +82,7 @@ GitHub-Releases distribution, not the Mac App Store. `UpdateManager` polls the
 GitHub Releases API for a newer tag rather than using Sparkle: without
 notarization an auto-installed update would be blocked by Gatekeeper anyway.
 
-First launch of a downloaded, ad-hoc-signed app needs one manual step:
+First launch of a downloaded, ad-hoc-signed app may need one manual step:
 right-click `MacEQ.app` → **Open** → confirm, since it isn't notarized.
 
 ## Project layout

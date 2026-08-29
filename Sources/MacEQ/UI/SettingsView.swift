@@ -3,40 +3,52 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct SettingsView: View {
-    var body: some View {
-        TabView {
-            GeneralSettings().tabItem { Label(L("settings.tab.general"), systemImage: "gearshape") }
-            AudioSettings().tabItem { Label(L("settings.tab.audio"), systemImage: "hifispeaker") }
-            EqualizerSettings().tabItem { Label(L("settings.tab.equalizer"), systemImage: "slider.horizontal.3") }
-            AdvancedSettings().tabItem { Label(L("settings.tab.advanced"), systemImage: "wrench.and.screwdriver") }
-            AboutSettings().tabItem { Label(L("settings.tab.about"), systemImage: "info.circle") }
-        }
-        .frame(width: 480, height: 380)
-        .onAppear {
-            DispatchQueue.main.async { recenterIfOffScreen(NSApp.keyWindow) }
-        }
-    }
-}
-
-private struct GeneralSettings: View {
     @EnvironmentObject private var state: AppState
+    @State private var message: String?
+    @State private var confirmReset = false
 
     var body: some View {
         Form {
+            Section { generalSettings } header: { sectionHeader(L("settings.tab.general")) }
+            Section { audioSettings } header: { sectionHeader(L("settings.tab.audio")) }
+            Section { equalizerSettings } header: { sectionHeader(L("settings.tab.equalizer")) }
+            Section { appearanceSettings } header: { sectionHeader(L("settings.section.appearance")) }
+            Section { advancedSettings } header: { sectionHeader(L("settings.tab.advanced")) }
+            Section { aboutSettings } header: { sectionHeader(L("settings.tab.about")) }
+        }
+        .formStyle(.grouped)
+        .frame(width: 560, height: 620)
+        .preferredColorScheme(state.appearance.colorScheme)
+        .onAppear {
+            state.refreshDevices()
+            DispatchQueue.main.async { recenterIfOffScreen(NSApp.keyWindow) }
+        }
+        .alert(L("settings.advanced.resetConfirm.title"), isPresented: $confirmReset) {
+            Button(L("common.reset"), role: .destructive) { state.resetEverything() }
+            Button(L("common.cancel"), role: .cancel) {}
+        } message: {
+            Text(L("settings.advanced.resetConfirm.message"))
+        }
+    }
+
+    private var generalSettings: some View {
+        Group {
             Toggle(L("settings.general.launchAtLogin"), isOn: Binding(
                 get: { if case .enabled = state.loginItemStatus { return true } else { return false } },
-                set: { state.setLaunchAtLogin($0) }))
+                set: { state.setLaunchAtLogin($0) }
+            ))
 
             if case .blockedByUser = state.loginItemStatus {
-                // Registration can be refused, and hiding that would leave the
-                // toggle silently doing nothing.
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text(L("settings.general.loginBlocked"))
                         .font(.caption)
-                    Button(L("settings.general.loginBlocked.action")) { LoginItemManager.openLoginItemsSettings() }
-                        .buttonStyle(.link)
+                    Button(L("settings.general.loginBlocked.action")) {
+                        LoginItemManager.openLoginItemsSettings()
+                    }
+                    .buttonStyle(.link)
                 }
             }
+
             if case .unavailable(let reason) = state.loginItemStatus {
                 Text(L("settings.general.loginFailed", reason))
                     .font(.caption)
@@ -47,33 +59,131 @@ private struct GeneralSettings: View {
             Toggle(L("settings.general.menuBarIcon"), isOn: $state.showMenuBarIcon)
             Toggle(L("settings.general.dockIcon"), isOn: $state.showDockIcon)
         }
-        .formStyle(.grouped)
     }
-}
 
-private struct AudioSettings: View {
-    @EnvironmentObject private var state: AppState
-
-    var body: some View {
-        Form {
-            Picker(L("settings.audio.outputDevice"), selection: Binding(get: { state.preferredDeviceUID ?? "" },
-                                                set: { state.preferredDeviceUID = $0.isEmpty ? nil : $0 })) {
+    private var audioSettings: some View {
+        Group {
+            Picker(L("settings.audio.outputDevice"), selection: Binding(
+                get: { state.preferredDeviceUID ?? "" },
+                set: { state.preferredDeviceUID = $0.isEmpty ? nil : $0 }
+            )) {
                 Text(L("settings.audio.followSystem")).tag("")
                 ForEach(state.availableOutputs, id: \.uid) { device in
                     Text(device.name).tag(device.uid)
                 }
             }
+
             Button(L("settings.audio.refreshDevices")) { state.refreshDevices() }
                 .buttonStyle(.link)
 
-            Toggle(L("settings.audio.autoHeadroom"), isOn: Binding(get: { state.live.autoHeadroom },
-                                            set: { state.setAutoHeadroom($0) }))
+            Toggle(L("settings.audio.autoHeadroom"), isOn: Binding(
+                get: { state.live.autoHeadroom },
+                set: { state.setAutoHeadroom($0) }
+            ))
             Toggle(L("settings.audio.safetyLimiter"), isOn: $state.limiterEnabled)
+            Toggle(L("settings.audio.spectrumAnalyzer"), isOn: $state.spectrumEnabled)
 
             LabeledContent(L("settings.audio.engine")) { Text(engineDescription) }
         }
-        .formStyle(.grouped)
-        .onAppear { state.refreshDevices() }
+    }
+
+    private var equalizerSettings: some View {
+        Group {
+            LabeledContent(L("settings.eq.currentPreset")) {
+                Text(state.selectedPreset?.name ?? "—")
+            }
+            if state.isModified {
+                Label(L("settings.eq.modified"), systemImage: "slider.horizontal.3")
+                    .foregroundStyle(.secondary)
+            }
+            if state.live.autoHeadroom {
+                LabeledContent(L("settings.eq.effectivePreamp")) {
+                    Text(String(format: "%+.1f dB", state.status.effectivePreampDB))
+                        .monospacedDigit()
+                }
+            }
+
+            Toggle(L("home.bandMode.twenty"), isOn: $state.showTwentyBands)
+
+            Picker(L("settings.eq.choosePreset"), selection: Binding(
+                get: { state.selectedPresetID },
+                set: { id in
+                    if let preset = state.presets.preset(id: id) { state.select(preset: preset) }
+                }
+            )) {
+                Section(L("settings.eq.builtIns")) {
+                    ForEach(EQPreset.builtIns) { preset in
+                        Text(preset.name).tag(preset.id)
+                    }
+                }
+                if !state.presets.userPresets.isEmpty {
+                    Section(L("settings.eq.userPresets")) {
+                        ForEach(state.presets.userPresets) { preset in
+                            Text(preset.name).tag(preset.id)
+                        }
+                    }
+                }
+            }
+
+            HStack {
+                Button(L("common.export")) { export() }
+                Button(L("common.import")) { performImport() }
+                Spacer()
+                Button(L("settings.eq.resetUserPresets"), role: .destructive) {
+                    state.resetPresets()
+                }
+            }
+
+            if let message {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var appearanceSettings: some View {
+        Picker(L("settings.appearance.label"), selection: $state.appearance) {
+            ForEach(AppearanceMode.allCases) { mode in
+                Text(mode.label).tag(mode)
+            }
+        }
+    }
+
+    private var advancedSettings: some View {
+        Group {
+            DiagnosticsView()
+            Button(L("settings.advanced.restartEngine")) { state.retryAudio() }
+            Button(L("settings.advanced.resetEverything")) { confirmReset = true }
+        }
+    }
+
+    private var aboutSettings: some View {
+        Group {
+            LabeledContent(L("settings.about.version")) {
+                Text("\(AppInfo.version) (\(AppInfo.build))")
+            }
+            HStack {
+                Button(L("settings.about.checkUpdates")) { state.updates.check() }
+                Text(updateDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if case .available = state.updates.state {
+                    Button(L("settings.about.viewRelease")) { state.updates.openReleasePage() }
+                }
+            }
+            Link("GitHub", destination: AppInfo.repositoryURL)
+            Text(L("settings.about.privacy"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
     }
 
     private var engineDescription: String {
@@ -81,62 +191,15 @@ private struct AudioSettings: View {
         return L("settings.audio.engine.running",
                  Int(state.status.sampleRate), state.status.channels, Int(state.status.bufferFrames))
     }
-}
 
-private struct EqualizerSettings: View {
-    @EnvironmentObject private var state: AppState
-    @State private var message: String?
-
-    var body: some View {
-        Form {
-            Section(L("settings.eq.currentSound")) {
-                LabeledContent(L("settings.eq.currentPreset")) {
-                    Text(state.selectedPreset?.name ?? "—")
-                }
-                if state.isModified {
-                    Label(L("settings.eq.modified"), systemImage: "slider.horizontal.3")
-                        .foregroundStyle(.secondary)
-                }
-                if state.live.autoHeadroom {
-                    LabeledContent(L("settings.eq.effectivePreamp")) {
-                        Text(String(format: "%+.1f dB", state.status.effectivePreampDB))
-                            .monospacedDigit()
-                    }
-                }
-            }
-
-            Section(L("settings.eq.choosePreset")) {
-                Picker(L("settings.eq.currentPreset"), selection: Binding(get: { state.selectedPresetID },
-                                                    set: { id in
-                    if let preset = state.presets.preset(id: id) { state.select(preset: preset) }
-                })) {
-                    Section(L("settings.eq.builtIns")) {
-                        ForEach(EQPreset.builtIns) { preset in
-                            Text(preset.name).tag(preset.id)
-                        }
-                    }
-                    if !state.presets.userPresets.isEmpty {
-                        Section(L("settings.eq.userPresets")) {
-                            ForEach(state.presets.userPresets) { preset in
-                                Text(preset.name).tag(preset.id)
-                            }
-                        }
-                    }
-                }
-
-                HStack {
-                    Button(L("common.export")) { export() }
-                    Button(L("common.import")) { performImport() }
-                    Spacer()
-                    Button(L("settings.eq.resetUserPresets"), role: .destructive) { state.resetPresets() }
-                }
-            }
-
-            if let message {
-                Text(message).font(.caption).foregroundStyle(.secondary)
-            }
+    private var updateDescription: String {
+        switch state.updates.state {
+        case .idle: return ""
+        case .checking: return L("settings.about.checking")
+        case .upToDate: return L("settings.about.upToDate")
+        case .available(let version, _): return L("settings.about.available", version)
+        case .failed(let reason): return L("settings.about.checkFailed", reason)
         }
-        .formStyle(.grouped)
     }
 
     private func export() {
@@ -162,63 +225,6 @@ private struct EqualizerSettings: View {
             message = L("settings.eq.imported", count)
         } catch {
             message = L("settings.eq.importFailed")
-        }
-    }
-}
-
-private struct AdvancedSettings: View {
-    @EnvironmentObject private var state: AppState
-    @State private var confirmReset = false
-
-    var body: some View {
-        Form {
-            Section(L("settings.advanced.diagnostics")) {
-                DiagnosticsView()
-            }
-            Section {
-                Button(L("settings.advanced.restartEngine")) { state.retryAudio() }
-                Button(L("settings.advanced.resetEverything"), role: .destructive) { confirmReset = true }
-            }
-        }
-        .formStyle(.grouped)
-        .alert(L("settings.advanced.resetConfirm.title"), isPresented: $confirmReset) {
-            Button(L("common.reset"), role: .destructive) { state.resetEverything() }
-            Button(L("common.cancel"), role: .cancel) {}
-        } message: {
-            Text(L("settings.advanced.resetConfirm.message"))
-        }
-    }
-}
-
-private struct AboutSettings: View {
-    @EnvironmentObject private var state: AppState
-
-    var body: some View {
-        Form {
-            LabeledContent(L("settings.about.version")) { Text("\(AppInfo.version) (\(AppInfo.build))") }
-            HStack {
-                Button(L("settings.about.checkUpdates")) { state.updates.check() }
-                Text(updateDescription).font(.caption).foregroundStyle(.secondary)
-                Spacer()
-                if case .available = state.updates.state {
-                    Button(L("settings.about.viewRelease")) { state.updates.openReleasePage() }
-                }
-            }
-            Link("GitHub", destination: AppInfo.repositoryURL)
-            Text(L("settings.about.privacy"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .formStyle(.grouped)
-    }
-
-    private var updateDescription: String {
-        switch state.updates.state {
-        case .idle: return ""
-        case .checking: return L("settings.about.checking")
-        case .upToDate: return L("settings.about.upToDate")
-        case .available(let version, _): return L("settings.about.available", version)
-        case .failed(let reason): return L("settings.about.checkFailed", reason)
         }
     }
 }

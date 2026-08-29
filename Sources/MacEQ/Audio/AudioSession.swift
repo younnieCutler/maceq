@@ -36,7 +36,10 @@ final class AudioSession: @unchecked Sendable {
         var limiterEnabled = true
         var peakInDB: Double = -.infinity
         var peakOutDB: Double = -.infinity
+        var peakOutLeftDB: Double = -.infinity
+        var peakOutRightDB: Double = -.infinity
         var limiterReductionDB: Double = 0
+        var spectrumDB: [Float] = [Float](repeating: -80, count: DSPCore.spectrumBinCount)
         var lastError: String?
         var callbacksPerTick: UInt64 = 0
         var deviceActive = false
@@ -55,6 +58,7 @@ final class AudioSession: @unchecked Sendable {
     private var listeners: [(AudioObjectID, AudioObjectPropertyAddress, AudioObjectPropertyListenerBlock)] = []
 
     private var watchdog: DispatchSourceTimer?
+    private var spectrumTimer: DispatchSourceTimer?
     private var sawCallbacks = false
     private var silentTicks = 0
     private var recoveryAttempt = 0
@@ -64,6 +68,7 @@ final class AudioSession: @unchecked Sendable {
     private var settings = EQSettings.flat
     private var enabled = true
     private var limiterEnabled = true
+    private var spectrumEnabled = true
     /// nil means "follow the system default output".
     private var preferredDeviceUID: String?
 
@@ -88,6 +93,7 @@ final class AudioSession: @unchecked Sendable {
             installSleepWakeObservers()
             build(reason: "start")
             startWatchdog()
+            if spectrumEnabled { startSpectrumTimer() }
         }
     }
 
@@ -95,6 +101,7 @@ final class AudioSession: @unchecked Sendable {
         queue.sync { [self] in
             started = false
             stopWatchdog()
+            stopSpectrumTimer()
             teardown()
             update { $0.state = .stopped }
         }
@@ -120,6 +127,20 @@ final class AudioSession: @unchecked Sendable {
             limiterEnabled = value
             dsp.setLimiterEnabled(value)
             update { $0.limiterEnabled = value }
+        }
+    }
+
+    func setSpectrumEnabled(_ value: Bool) {
+        queue.async { [self] in
+            guard spectrumEnabled != value else { return }
+            spectrumEnabled = value
+            dsp.setSpectrumEnabled(value)
+            if value {
+                startSpectrumTimer()
+            } else {
+                stopSpectrumTimer()
+                update { $0.spectrumDB = [Float](repeating: -80, count: DSPCore.spectrumBinCount) }
+            }
         }
     }
 
@@ -373,6 +394,23 @@ final class AudioSession: @unchecked Sendable {
         watchdog = nil
     }
 
+    private func startSpectrumTimer() {
+        guard spectrumTimer == nil else { return }
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + 0.1, repeating: 0.1)
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.update { $0.spectrumDB = self.dsp.readSpectrumDB() }
+        }
+        timer.resume()
+        spectrumTimer = timer
+    }
+
+    private func stopSpectrumTimer() {
+        spectrumTimer?.cancel()
+        spectrumTimer = nil
+    }
+
     /// Core Audio stops cycling the aggregate when nothing is playing, so a
     /// callback count of zero on its own means nothing. The verdict only makes
     /// sense while the physical device is actually running for somebody:
@@ -389,6 +427,8 @@ final class AudioSession: @unchecked Sendable {
             $0.deviceActive = deviceActive
             $0.peakInDB = meters.peakIn > 0 ? 20 * log10(Double(meters.peakIn)) : -.infinity
             $0.peakOutDB = meters.peakOut > 0 ? 20 * log10(Double(meters.peakOut)) : -.infinity
+            $0.peakOutLeftDB = meters.peakOutLeft > 0 ? 20 * log10(Double(meters.peakOutLeft)) : -.infinity
+            $0.peakOutRightDB = meters.peakOutRight > 0 ? 20 * log10(Double(meters.peakOutRight)) : -.infinity
             $0.limiterReductionDB = meters.limitDB
         }
 

@@ -26,17 +26,22 @@
 "home.modified" = "Modified";
 "home.sound.active" = "%@ active";
 "home.userPresets" = "My Presets";
+"home.presets.builtIn" = "Built-in";
+"home.presets.user" = "My Presets";
 "home.userPreset.actions" = "Manage %@";
 "home.renamePreset" = "Rename";
 "home.renamePreset.title" = "Rename Preset";
 "home.renamePreset.field" = "Name";
 "home.renamePreset.message" = "Change this preset's name.";
 "home.section.equalizer" = "Equalizer";
-"home.editBands" = "Edit 20 Bands";
+"home.eq.scale" = "Gain · dB";
+"home.bandMode.twenty" = "20-band";
 "home.headroom.summary" = "Curve peak +%.1f dB · margin %.1f dB · auto preamp %+.1f dB";
-"home.section.preamp" = "Preamp";
-"home.preamp.auto" = "Auto";
-"home.preamp.manual" = "Manual";
+"home.preamp.label" = "Preamp";
+"home.preamp.field" = "Preamp in decibels";
+"home.autoGain.title" = "Auto Gain";
+"home.limiter.title" = "Limiter";
+"home.outputMeter" = "Stereo output level";
 "home.autoHeadroom.title" = "Auto Headroom";
 "home.autoHeadroom.on" = "Automatically prevents clipping. Currently reserving %.1f dB.";
 "home.autoHeadroom.off" = "Larger boosts can cause distortion.";
@@ -50,26 +55,13 @@
 "status.recovering.title" = "Reconnecting audio";
 "status.recovering.message" = "Attempt %d";
 
-/* Bands sheet */
-"bands.title" = "20-Band Equalizer";
-"bands.resetAll" = "Reset All to 0 dB";
-"bands.hint" = "Drag to adjust, double-click a value to reset it to 0 dB. ⌘Z to undo.";
-
 /* Menu bar */
 "menubar.equalizer" = "Equalizer";
+"menubar.preset" = "Preset";
 "menubar.needsPermission" = "System Audio Permission Needed…";
 "menubar.open" = "Open Equalizer…";
 "menubar.settings" = "Settings…";
 "menubar.quit" = "Quit MacEQ";
-
-/* Onboarding */
-"onboarding.welcome.title" = "Mac's sound,\nyour way.";
-"onboarding.welcome.subtitle" = "A 20-band equalizer for everything you hear.";
-"onboarding.permission.title" = "System Audio Access";
-"onboarding.permission.body" = "MacEQ only processes sound — it never records or uploads it.\nYour audio never leaves this Mac.";
-"onboarding.pick.title" = "You're all set.";
-"onboarding.pick.subtitle" = "Pick a sound to start with.";
-"onboarding.start" = "Get Started";
 
 /* Settings */
 "settings.tab.general" = "General";
@@ -77,6 +69,11 @@
 "settings.tab.equalizer" = "Equalizer";
 "settings.tab.advanced" = "Advanced";
 "settings.tab.about" = "About";
+"settings.section.appearance" = "Appearance";
+"settings.appearance.label" = "Appearance";
+"appearance.system" = "System";
+"appearance.light" = "Light";
+"appearance.dark" = "Dark";
 
 "settings.general.launchAtLogin" = "Launch MacEQ at Login";
 "settings.general.loginBlocked" = "MacEQ can't launch automatically at login.";
@@ -91,6 +88,7 @@
 "settings.audio.refreshDevices" = "Refresh Device List";
 "settings.audio.autoHeadroom" = "Auto Headroom";
 "settings.audio.safetyLimiter" = "Safety Limiter";
+"settings.audio.spectrumAnalyzer" = "Spectrum Analyzer";
 "settings.audio.engine" = "Engine";
 "settings.audio.engine.stopped" = "Stopped";
 "settings.audio.engine.running" = "%d Hz · %d ch · %d frames";
@@ -150,7 +148,8 @@
 
 /* Curve editor accessibility */
 "curve.a11y.label" = "Equalizer curve";
-"curve.a11y.hint" = "Use Edit 20 Bands for finer control";
+"curve.a11y.hint" = "Switch to 20-band mode for finer control";
+"curve.a11y.dragHint" = "Drag vertically to adjust gain";
 "curve.a11y.allZero" = "All bands zero decibels";
 
 /* Band accessibility */

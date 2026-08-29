@@ -27,6 +27,23 @@ final class MigrationTests: XCTestCase {
         XCTAssertNotNil(migrated.devicePresets["device-a"])
     }
 
+    func testDeviceStateKeepsLiveSoundWhenPresetWasDeleted() {
+        var settings = AppSettings()
+        let live = EQSettings(bandGainsDB: [2] + [Double](repeating: 0, count: 19),
+                              preampDB: -2,
+                              autoHeadroom: false)
+        settings.deviceStates = [
+            "device-a": DeviceEQState(live: live,
+                                       selectedPresetID: UUID(),
+                                       showTwentyBands: true)
+        ]
+
+        let migrated = Migration.migrate(settings)
+        XCTAssertEqual(migrated.deviceStates?["device-a"]?.live, live)
+        XCTAssertEqual(migrated.deviceStates?["device-a"]?.selectedPresetID,
+                       EQPreset.flatPreset.id)
+    }
+
     func testSchemaVersionIsStampedCurrent() {
         var settings = AppSettings()
         settings.schemaVersion = 0

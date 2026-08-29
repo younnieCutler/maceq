@@ -1,13 +1,14 @@
 #!/bin/bash
-# Regenerates Resources/AppIcon.icns from scripts/generate-icon.swift.
-# Run this after editing the icon artwork.
+# Regenerates Resources/AppIcon.icns from a square PNG.
+# Run this after replacing Resources/AppIcon.png.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SOURCE="${1:-$ROOT/Resources/AppIcon.png}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-swiftc -O -o "$WORK/gen" "$ROOT/scripts/generate-icon.swift"
-"$WORK/gen" "$WORK/icon-1024.png"
+[ -f "$SOURCE" ] || { echo "icon source missing: $SOURCE" >&2; exit 1; }
+sips -s format png -z 1024 1024 "$SOURCE" --out "$WORK/icon-1024.png" >/dev/null
 
 ICONSET="$WORK/AppIcon.iconset"
 mkdir -p "$ICONSET"

@@ -14,6 +14,8 @@ trap 'rm -rf "$STAGING"' EXIT
 CONFIG=release "$ROOT/scripts/bundle.sh"
 
 cp -R "$ROOT/MacEQ.app" "$STAGING/MacEQ.app"
+cp "$ROOT/scripts/install.command" "$STAGING/Install MacEQ.command"
+chmod +x "$STAGING/Install MacEQ.command"
 ln -s /Applications "$STAGING/Applications"
 
 rm -f "$ROOT/$DMG_NAME"

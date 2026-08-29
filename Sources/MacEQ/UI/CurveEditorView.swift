@@ -1,15 +1,11 @@
 import SwiftUI
 
-/// Draws the equaliser's real magnitude response and lets it be dragged.
-///
-/// The curve is the actual cascade response, not a spline through the band
-/// points, so what is drawn is what is heard — including the way neighbouring
-/// bands sum where they overlap.
+/// One continuous equalizer surface. The 10-band view is a presentation of
+/// the same 20-band DSP state, so switching modes never changes the sound.
 struct CurveEditorView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Band being dragged, used to show its readout.
     @State private var activeBand: Int?
 
     private let minDB: Double = -12
@@ -17,130 +13,151 @@ struct CurveEditorView: View {
     private let lowFrequency: Double = 24
     private let highFrequency: Double = 22_000
 
+    private var visibleBandIndices: [Int] {
+        state.showTwentyBands
+            ? Array(0..<EQBands.count)
+            : EQBands.tenBandIndices
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let size = geometry.size
+            let plotRect = plotRect(in: size)
+            let faderHeight = plotRect.height + 40
+            let hitWidth = max(44, min(64, plotRect.width / CGFloat(visibleBandIndices.count) * 0.94))
+
             ZStack(alignment: .topLeading) {
                 Canvas { context, canvasSize in
-                    draw(in: &context, size: canvasSize)
+                    draw(in: &context, size: canvasSize, plotRect: plotRect)
                 }
-                if let activeBand {
-                    readout(for: activeBand, in: size)
+
+                axisLabels(in: plotRect)
+
+                ForEach(visibleBandIndices, id: \.self) { index in
+                    EQFader(
+                        index: index,
+                        value: state.live.bandGainsDB[index],
+                        railHeight: plotRect.height,
+                        isActive: activeBand == index,
+                        isEQEnabled: state.eqEnabled,
+                        tint: tint(for: index),
+                        onBegin: {
+                            activeBand = index
+                        },
+                        onChange: { gain in
+                            state.setBandGain(index, dB: gain)
+                        },
+                        onEnd: {
+                            activeBand = nil
+                        }
+                    )
+                    .frame(width: hitWidth, height: faderHeight)
+                    .position(x: x(forFrequency: EQBands.frequencies[index], in: plotRect),
+                              y: plotRect.minY + plotRect.height / 2 + 20)
                 }
             }
             .contentShape(Rectangle())
-            .gesture(dragGesture(in: size))
-            .onTapGesture(count: 2) { location in
-                let index = bandIndex(forX: location.x, width: size.width)
-                state.setBandGain(index, dB: 0)
-            }
         }
-        .frame(height: 220)
-        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
-        .accessibilityElement()
+        .frame(minHeight: 320, maxHeight: .infinity)
+        .background(.background)
+        .overlay(alignment: .top) { Divider().opacity(0.55) }
+        .accessibilityElement(children: .contain)
         .accessibilityLabel(L("curve.a11y.label"))
-        .accessibilityValue(curveDescription)
         .accessibilityHint(L("curve.a11y.hint"))
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: state.live)
+        // Presets glide into place; the active fader is always immediate.
+        .animation((reduceMotion || activeBand != nil) ? nil : .easeOut(duration: 0.15),
+                   value: state.live)
     }
 
-    // MARK: - Drawing
+    private func plotRect(in size: CGSize) -> CGRect {
+        CGRect(x: 36,
+               y: 16,
+               width: max(size.width - 48, 1),
+               height: max(size.height - 64, 1))
+    }
 
-    private func draw(in context: inout GraphicsContext, size: CGSize) {
-        drawGrid(in: &context, size: size)
+    @ViewBuilder
+    private func axisLabels(in rect: CGRect) -> some View {
+        ZStack(alignment: .topLeading) {
+            ForEach([-12.0, -6.0, 0.0, 6.0, 12.0], id: \.self) { dB in
+                Text(String(format: "%+.0f", dB))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(dB == 0 ? .primary : .secondary)
+                    .position(x: 16, y: y(forDB: dB, height: rect.height))
+            }
+        }
+        .frame(width: 32, height: rect.height)
+        .position(x: 16, y: rect.midY)
+        .accessibilityHidden(true)
+    }
+
+    private func draw(in context: inout GraphicsContext, size: CGSize, plotRect: CGRect) {
+        drawGrid(in: &context, plotRect: plotRect)
+        drawSpectrum(in: &context, plotRect: plotRect)
 
         var path = Path()
-        let steps = 160
+        let steps = 180
         for step in 0...steps {
             let ratio = Double(step) / Double(steps)
             let frequency = lowFrequency * pow(highFrequency / lowFrequency, ratio)
-            let dB = response(at: frequency)
-            let point = CGPoint(x: ratio * size.width, y: y(forDB: dB, height: size.height))
-            if step == 0 { path.move(to: point) } else { path.addLine(to: point) }
-        }
-
-        // Fill between the curve and the 0 dB line so cuts and boosts read at a
-        // glance without relying on colour alone.
-        var fill = path
-        fill.addLine(to: CGPoint(x: size.width, y: y(forDB: 0, height: size.height)))
-        fill.addLine(to: CGPoint(x: 0, y: y(forDB: 0, height: size.height)))
-        fill.closeSubpath()
-        context.fill(fill, with: .color(.accentColor.opacity(0.16)))
-        context.stroke(path, with: .color(.accentColor), lineWidth: 2)
-
-        for index in 0..<EQBands.count {
-            let center = CGPoint(x: x(forFrequency: EQBands.frequencies[index], width: size.width),
-                                 y: y(forDB: state.live.bandGainsDB[index], height: size.height))
-            let radius: CGFloat = activeBand == index ? 6 : 4
-            let dot = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius,
-                                             width: radius * 2, height: radius * 2))
-            context.fill(dot, with: .color(.accentColor))
-            if activeBand == index {
-                context.stroke(dot, with: .color(.white), lineWidth: 2)
+            let point = CGPoint(
+                x: x(forFrequency: frequency, in: plotRect),
+                y: plotRect.minY + y(forDB: response(at: frequency), height: plotRect.height)
+            )
+            if step == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
             }
         }
+
+        context.stroke(path,
+                       with: .color(Color.macEQAccent.opacity(state.eqEnabled ? 0.58 : 0.22)),
+                       lineWidth: 1.25)
     }
 
-    private func drawGrid(in context: inout GraphicsContext, size: CGSize) {
+    private func drawSpectrum(in context: inout GraphicsContext, plotRect: CGRect) {
+        guard state.spectrumEnabled, state.status.spectrumDB.count == EQBands.count else { return }
+
+        var path = Path()
+        for index in 0..<EQBands.count {
+            let db = Double(state.status.spectrumDB[index])
+            let level = min(max((db + 80) / 80, 0), 1)
+            let point = CGPoint(
+                x: x(forFrequency: EQBands.frequencies[index], in: plotRect),
+                y: plotRect.maxY - CGFloat(level) * plotRect.height * 0.55
+            )
+            if index == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
+            }
+        }
+
+        // Measured spectrum stays quieter than the EQ response and has no fill
+        // or glow, so it remains a peripheral cue rather than the focal point.
+        context.stroke(path, with: .color(Color.secondary.opacity(0.28)), lineWidth: 1)
+    }
+
+    private func drawGrid(in context: inout GraphicsContext, plotRect: CGRect) {
         for dB in stride(from: minDB, through: maxDB, by: 6) {
-            let position = y(forDB: dB, height: size.height)
+            let y = plotRect.minY + y(forDB: dB, height: plotRect.height)
             var line = Path()
-            line.move(to: CGPoint(x: 0, y: position))
-            line.addLine(to: CGPoint(x: size.width, y: position))
+            line.move(to: CGPoint(x: plotRect.minX, y: y))
+            line.addLine(to: CGPoint(x: plotRect.maxX, y: y))
             context.stroke(line,
-                           with: .color(.secondary.opacity(dB == 0 ? 0.45 : 0.15)),
+                           with: .color(dB == 0 ? Color.primary.opacity(0.34) : Color.secondary.opacity(0.13)),
                            lineWidth: dB == 0 ? 1 : 0.5)
         }
+
         for frequency in [100.0, 1_000.0, 10_000.0] {
-            let position = x(forFrequency: frequency, width: size.width)
+            let x = x(forFrequency: frequency, in: plotRect)
             var line = Path()
-            line.move(to: CGPoint(x: position, y: 0))
-            line.addLine(to: CGPoint(x: position, y: size.height))
-            context.stroke(line, with: .color(.secondary.opacity(0.15)), lineWidth: 0.5)
+            line.move(to: CGPoint(x: x, y: plotRect.minY))
+            line.addLine(to: CGPoint(x: x, y: plotRect.maxY))
+            context.stroke(line, with: .color(Color.secondary.opacity(0.11)), lineWidth: 0.5)
         }
     }
-
-    private func readout(for index: Int, in size: CGSize) -> some View {
-        let gain = state.live.bandGainsDB[index]
-        return Text("\(EQBands.label(index))  \(String(format: "%+.1f", gain)) dB")
-            .font(.caption.monospacedDigit())
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.regularMaterial, in: Capsule())
-            .position(x: min(max(x(forFrequency: EQBands.frequencies[index], width: size.width), 54),
-                             size.width - 54),
-                      y: 18)
-            .allowsHitTesting(false)
-    }
-
-    // MARK: - Interaction
-
-    private func dragGesture(in size: CGSize) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                if activeBand == nil { state.beginGesture() }
-                // Painting: the band under the cursor follows the drag, which
-                // is how people expect to sweep a curve.
-                let index = bandIndex(forX: value.location.x, width: size.width)
-                activeBand = index
-                state.setBandGain(index, dB: dB(forY: value.location.y, height: size.height),
-                                  isGesture: true)
-            }
-            .onEnded { _ in activeBand = nil }
-    }
-
-    private func bandIndex(forX position: CGFloat, width: CGFloat) -> Int {
-        var best = 0
-        var bestDistance = CGFloat.greatestFiniteMagnitude
-        for index in 0..<EQBands.count {
-            let distance = abs(x(forFrequency: EQBands.frequencies[index], width: width) - position)
-            if distance < bestDistance { bestDistance = distance; best = index }
-        }
-        return best
-    }
-
-    // MARK: - Geometry
 
     private func response(at frequency: Double) -> Double {
         let rate = state.status.sampleRate > 0 ? state.status.sampleRate : 48_000
@@ -157,26 +174,117 @@ struct CurveEditorView: View {
         return total
     }
 
-    private func x(forFrequency frequency: Double, width: CGFloat) -> CGFloat {
+    private func x(forFrequency frequency: Double, in rect: CGRect) -> CGFloat {
         let ratio = log(frequency / lowFrequency) / log(highFrequency / lowFrequency)
-        return CGFloat(ratio) * width
+        return rect.minX + CGFloat(ratio) * rect.width
     }
 
     private func y(forDB dB: Double, height: CGFloat) -> CGFloat {
         let clamped = min(max(dB, minDB), maxDB)
-        let ratio = (maxDB - clamped) / (maxDB - minDB)
-        return CGFloat(ratio) * height
+        return CGFloat((maxDB - clamped) / (maxDB - minDB)) * height
     }
 
-    private func dB(forY position: CGFloat, height: CGFloat) -> Double {
-        let ratio = Double(min(max(position, 0), height) / max(height, 1))
-        return maxDB - ratio * (maxDB - minDB)
+    private func tint(for index: Int) -> Color {
+        switch index {
+        case 0..<(EQBands.count / 3): return .macEQLow
+        case (EQBands.count * 2 / 3)..<EQBands.count: return .macEQHigh
+        default: return .primary
+        }
+    }
+}
+
+/// Direct-manipulation fader with a deliberately quiet physical cue: one rail
+/// and one small horizontal thumb, no knob, card, bevel, or shadow.
+struct EQFader: View {
+    let index: Int
+    let value: Double
+    let railHeight: CGFloat
+    let isActive: Bool
+    let isEQEnabled: Bool
+    let tint: Color
+    let onBegin: () -> Void
+    let onChange: (Double) -> Void
+    let onEnd: () -> Void
+
+    @State private var isHovered = false
+    @State private var isDragging = false
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Rectangle()
+                    .fill(Color.secondary.opacity(isEQEnabled ? 0.28 : 0.14))
+                    .frame(width: 2)
+
+                if isActive {
+                    Rectangle()
+                        .fill(tint.opacity(0.72))
+                        .frame(width: 2)
+                }
+
+                RoundedRectangle(cornerRadius: 1)
+                    .fill((isActive || isHovered) ? tint : Color.primary.opacity(0.72))
+                    .frame(width: 20, height: 4)
+                    .offset(y: thumbOffset)
+
+                if isActive {
+                    Text(String(format: "%+.1f", value))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(tint)
+                        .offset(y: thumbOffset - 16)
+                }
+            }
+            .frame(height: railHeight)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { gesture in
+                        if !isDragging {
+                            isDragging = true
+                            onBegin()
+                        }
+                        onChange(gain(forY: gesture.location.y))
+                    }
+                    .onEnded { _ in
+                        isDragging = false
+                        onEnd()
+                    }
+            )
+
+            Text(EQBands.shortLabel(index))
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle((isActive || isHovered) ? tint : .secondary)
+                .lineLimit(1)
+                .frame(height: 16)
+        }
+        .opacity(isEQEnabled ? 1 : 0.62)
+        .onHover { isHovered = $0 }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(EQBands.spokenLabel(index))
+        .accessibilityValue(EQBands.spokenGain(value))
+        .accessibilityHint(L("curve.a11y.dragHint"))
+        .accessibilityAdjustableAction { direction in
+            onBegin()
+            switch direction {
+            case .increment:
+                onChange(EQBands.clamp(value + 0.5))
+            case .decrement:
+                onChange(EQBands.clamp(value - 0.5))
+            @unknown default:
+                break
+            }
+            onEnd()
+        }
     }
 
-    private var curveDescription: String {
-        let loud = state.live.bandGainsDB.enumerated()
-            .filter { abs($0.element) >= 1 }
-            .map { "\(EQBands.spokenLabel($0.offset)), \(EQBands.spokenGain($0.element))" }
-        return loud.isEmpty ? L("curve.a11y.allZero") : loud.joined(separator: ", ")
+    private var thumbOffset: CGFloat {
+        let ratio = (EQBands.maxGainDB - value) / (EQBands.maxGainDB - EQBands.minGainDB)
+        return CGFloat(ratio) * railHeight - railHeight / 2
+    }
+
+    private func gain(forY position: CGFloat) -> Double {
+        let clamped = min(max(position, 0), max(railHeight, 1))
+        let ratio = Double(clamped / max(railHeight, 1))
+        return EQBands.maxGainDB - ratio * (EQBands.maxGainDB - EQBands.minGainDB)
     }
 }

@@ -26,17 +26,22 @@
 "home.modified" = "変更あり";
 "home.sound.active" = "%@ を適用中";
 "home.userPresets" = "マイプリセット";
+"home.presets.builtIn" = "標準プリセット";
+"home.presets.user" = "マイプリセット";
 "home.userPreset.actions" = "%@ を管理";
 "home.renamePreset" = "名前を変更";
 "home.renamePreset.title" = "プリセット名を変更";
 "home.renamePreset.field" = "名前";
 "home.renamePreset.message" = "このプリセットの名前を変更します。";
 "home.section.equalizer" = "イコライザー";
-"home.editBands" = "20バンドを編集";
+"home.eq.scale" = "ゲイン · dB";
+"home.bandMode.twenty" = "20バンド";
 "home.headroom.summary" = "カーブのピーク +%.1f dB · 余裕 %.1f dB · 自動プリアンプ %+.1f dB";
-"home.section.preamp" = "プリアンプ";
-"home.preamp.auto" = "自動";
-"home.preamp.manual" = "手動";
+"home.preamp.label" = "プリアンプ";
+"home.preamp.field" = "プリアンプのデシベル値";
+"home.autoGain.title" = "オートゲイン";
+"home.limiter.title" = "リミッター";
+"home.outputMeter" = "ステレオ出力レベル";
 "home.autoHeadroom.title" = "オートヘッドルーム";
 "home.autoHeadroom.on" = "クリッピングを自動で防ぎます。現在 %.1f dB 確保中。";
 "home.autoHeadroom.off" = "ブーストが大きいほど音が割れやすくなります。";
@@ -50,26 +55,13 @@
 "status.recovering.title" = "オーディオを再接続しています";
 "status.recovering.message" = "%d 回目の試行";
 
-/* Bands sheet */
-"bands.title" = "20バンド・イコライザー";
-"bands.resetAll" = "すべて 0 dB に戻す";
-"bands.hint" = "ドラッグで調整、値をダブルクリックすると 0 dB に戻ります。⌘Z で元に戻す。";
-
 /* Menu bar */
 "menubar.equalizer" = "イコライザー";
+"menubar.preset" = "プリセット";
 "menubar.needsPermission" = "システムオーディオの権限が必要…";
 "menubar.open" = "イコライザーを開く…";
 "menubar.settings" = "設定…";
 "menubar.quit" = "MacEQ を終了";
-
-/* Onboarding */
-"onboarding.welcome.title" = "Macの音を、\n思いのままに。";
-"onboarding.welcome.subtitle" = "20バンド・イコライザーをすべてのサウンドに。";
-"onboarding.permission.title" = "システムオーディオへのアクセス";
-"onboarding.permission.body" = "MacEQ は音声を処理するだけで、録音やアップロードは一切行いません。\n音声はこの Mac の外に出ることはありません。";
-"onboarding.pick.title" = "準備が整いました。";
-"onboarding.pick.subtitle" = "まず試したいサウンドを選んでください。";
-"onboarding.start" = "はじめる";
 
 /* Settings */
 "settings.tab.general" = "一般";
@@ -77,6 +69,11 @@
 "settings.tab.equalizer" = "イコライザー";
 "settings.tab.advanced" = "詳細";
 "settings.tab.about" = "情報";
+"settings.section.appearance" = "外観";
+"settings.appearance.label" = "外観";
+"appearance.system" = "システム";
+"appearance.light" = "ライト";
+"appearance.dark" = "ダーク";
 
 "settings.general.launchAtLogin" = "ログイン時に MacEQ を起動";
 "settings.general.loginBlocked" = "MacEQ をログイン時に自動起動できません。";
@@ -91,6 +88,7 @@
 "settings.audio.refreshDevices" = "デバイス一覧を更新";
 "settings.audio.autoHeadroom" = "オートヘッドルーム";
 "settings.audio.safetyLimiter" = "セーフティリミッター";
+"settings.audio.spectrumAnalyzer" = "スペクトラムアナライザー";
 "settings.audio.engine" = "エンジン";
 "settings.audio.engine.stopped" = "停止中";
 "settings.audio.engine.running" = "%d Hz · %d チャンネル · %d フレーム";
@@ -150,7 +148,8 @@
 
 /* Curve editor accessibility */
 "curve.a11y.label" = "イコライザーカーブ";
-"curve.a11y.hint" = "細かく調整するには20バンド編集を使ってください";
+"curve.a11y.hint" = "細かく調整するには20バンドモードに切り替えてください";
+"curve.a11y.dragHint" = "上下にドラッグしてゲインを調整します";
 "curve.a11y.allZero" = "すべてのバンドが0デシベル";
 
 /* Band accessibility */
